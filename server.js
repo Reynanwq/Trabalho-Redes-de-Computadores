@@ -5,14 +5,17 @@ const PORT = 3000;
 const DIRECTORY = './server/';
 const SERVER = 'localhost';
 const HEADER = 1024;
+const { Server } = require("socket.io");
+const io = new Server();
+
+// Mapeia os clientes conectados ao servidor1
+const clients = new Map();
 
 /* Importações:
 - net: funcionalidades para criar servidores e clientes TCP.
 - fs: interação com sistemas de arquivos, incluindo leitura, escrita e exclusão de arquivos.
-- path: utilitários para manipular caminhos de arquivos e diretórios. */
+- path: utilitários para manipular caminhos de arquivos e diretórios.
 
-
-/*
 - depósito de arquivos
 - recuperação de arquivos
 - remoção de arquivos
@@ -25,29 +28,35 @@ IDEIA DE FUNÇÕES:
 - Permite que o cliente exclua um arquivo do servidor.
 */
 
-const server = net.createServer((client) => {
-    console.log(`Server is running. Accepted connection at address: ${client.remoteAddress}:${client.remotePort}`);
+io.on('connection', (socket) => {
+    console.log(`[SERVER] Client connected: ${socket.id}`);
 
-    client.on('data', (data) => {
+    // Adiciona o cliente ao mapa de clientes usando o ID do socket como chave
+    clients.set(socket.id, socket);
+
+    socket.on('command', (data) => {
         const message = data.toString().trim().split(' ');
         const command = message[0];
         const args = message.slice(1);
 
         if (command === 'list') {
-            // Implementação da função list
+            list(socket, args[0]);
         } else if (command === 'deposit') {
-            deposit(client, args[0], parseInt(args[1]), args[2], args[3]);
+            deposit(socket, args[0], parseInt(args[1]), args[2], args[3]);
         } else if (command === 'recover') {
-            // Implementação da função recover
+            recover(socket, args[0], args[1]);
         } else if (command === 'delete') {
-            // Implementação da função delete
+            deleteFile(socket, args[0], args[1]);
         }
     });
 
-    client.on('end', () => {
-        console.log(`Connection closed by client: ${client.remoteAddress}:${client.remotePort}`);
+    socket.on('disconnect', () => {
+        console.log(`[SERVER] Client disconnected: ${socket.id}`);
+        // Remove o cliente do mapa de clientes ao desconectar
+        clients.delete(socket.id);
     });
 });
+
 
 /* 
 -----------------------------------------------------------------
@@ -55,27 +64,22 @@ const server = net.createServer((client) => {
                 FUNÇÃO PARA LISTAR ARQUIVOS
 
 -----------------------------------------------------------------
-- Cria o caminho completo para o diretório do cliente.
-- Verifica se o diretório do cliente existe.
-- Se o diretório não existir, envia uma mensagem informando que nenhum arquivo foi encontrado.
--  Lê os arquivos no diretório do cliente.
-- Se houver arquivos, envia uma mensagem listando os arquivos para o cliente.
-- Se não houver arquivos, envia uma mensagem informando que nenhum arquivo foi encontrado.
 */
-function list(client, clientName) {
+
+function list(socket, clientName) {
     const clientPath = path.join(DIRECTORY, clientName);
 
     if (!fs.existsSync(clientPath)) {
-        client.write(`No files found for ${clientName}\n`);
+        socket.emit('message', `No files found for ${clientName}`);
         return;
     }
 
     const clientFiles = fs.readdirSync(clientPath);
 
     if (clientFiles.length > 0) {
-        client.write(`Files for ${clientName}: ${clientFiles.join(',')}\n`);
+        socket.emit('message', `Files for ${clientName}: ${clientFiles.join(',')}`);
     } else {
-        client.write(`No files found for ${clientName}\n`);
+        socket.emit('message', `No files found for ${clientName}`);
     }
 }
 
@@ -89,7 +93,7 @@ function list(client, clientName) {
 
 -----------------------------------------------------------------
 */
-function recover()  {}
+function recover(socket, clientName, filename) {}
 
 
 
@@ -114,16 +118,9 @@ function deleteFile() {}
                 FUNÇÃO PARA DEPOSITAR ARQUIVOS
 
 -----------------------------------------------------------------
-
-EXPLICAÇÃO:
-- Itera sobre o número de cópias especificado pelo cliente.
-- Cria o caminho para o diretório do cliente e a cópia específica.
-- Verifica se o diretório do cliente existe, senão, o cria de forma recursiva.
-- Cria o caminho completo do arquivo no diretório do cliente.
-- Escreve o conteúdo do arquivo no caminho especificado.
-- Envia uma mensagem de sucesso de volta para o cliente.
 */
-function deposit(client, clientName, copies, filename, fileContent) {
+
+function deposit(socket, clientName, copies, filename, fileContent) {
     for (let i = 0; i < copies; i++) {
         const clientPath = path.join(DIRECTORY, `${i}`, clientName);
 
@@ -135,9 +132,8 @@ function deposit(client, clientName, copies, filename, fileContent) {
         fs.writeFileSync(filePath, fileContent);
     }
 
-    client.write(`File ${filename} deposited\n`);
+    socket.emit('message', `File ${filename} deposited`);
 }
 
-server.listen(PORT, SERVER, () => {
-    console.log(`Server is now actively monitoring Port: ${PORT}, IP: ${SERVER}`);
-});
+io.listen(PORT);
+console.log(`[SERVER] Server is now actively monitoring Port: ${PORT}`);
