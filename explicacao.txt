@@ -1,0 +1,37 @@
+ - Depósito de Arquivos: O cliente informa ao servidor o arquivo que será depositado e a quantidade de cópias que ele deseja armazenar.
+
+ - Recuperação de Arquivos: O cliente especifica o nome do arquivo que deseja recuperar. O servidor localiza o arquivo e o retorna ao cliente.
+
+ - Remoção de Arquivos: O cliente indica o nome do arquivo que deseja remover, e o servidor procede com a remoção.
+
+
+FUNÇÕES:
+
+- Listar arquivos disponíveis para um cliente.
+- Permitir que um cliente deposite um arquivo no servirdor.
+- Permitir que o cliente recupere um arquivo do servidor.
+- Permite que o cliente exclua um arquivo do servidor.
+
+-------------------------- DESCRIÇÃO DETALHADA DE CADA OPERAÇÃO --------------------------
+
+DEPÓSITO:
+
+
+RECUPERAÇÃO:
+
+
+REMOÇÃO:
+
+
+-------------------------- DESCRIÇÃO DAS FUNÇÕES --------------------------
+
+RECOVER:
+
+
+DELETEFILE:
+
+
+DEPOSIT:
+
+
+LIST:

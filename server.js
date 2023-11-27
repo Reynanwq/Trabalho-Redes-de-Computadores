@@ -11,23 +11,6 @@ const io = new Server();
 // Mapeia os clientes conectados ao servidor1
 const clients = new Map();
 
-/* Importações:
-- net: funcionalidades para criar servidores e clientes TCP.
-- fs: interação com sistemas de arquivos, incluindo leitura, escrita e exclusão de arquivos.
-- path: utilitários para manipular caminhos de arquivos e diretórios.
-
-- depósito de arquivos
-- recuperação de arquivos
-- remoção de arquivos
-
-IDEIA DE FUNÇÕES:
-
-- Listar arquivos disponíveis para um cliente.
-- Permitir que um cliente deposite um arquivo no servirdor.
-- Permitir que o cliente recupere um arquivo do servidor.
-- Permite que o cliente exclua um arquivo do servidor.
-*/
-
 io.on('connection', (socket) => {
     console.log(`[SERVER] Client connected: ${socket.id}`);
 
@@ -57,35 +40,6 @@ io.on('connection', (socket) => {
     });
 });
 
-
-/* 
------------------------------------------------------------------
-
-                FUNÇÃO PARA LISTAR ARQUIVOS
-
------------------------------------------------------------------
-*/
-
-function list(socket, clientName) {
-    const clientPath = path.join(DIRECTORY, clientName);
-
-    if (!fs.existsSync(clientPath)) {
-        socket.emit('message', `No files found for ${clientName}`);
-        return;
-    }
-
-    const clientFiles = fs.readdirSync(clientPath);
-
-    if (clientFiles.length > 0) {
-        socket.emit('message', `Files for ${clientName}: ${clientFiles.join(',')}`);
-    } else {
-        socket.emit('message', `No files found for ${clientName}`);
-    }
-}
-
-
-
-
 /*
 -----------------------------------------------------------------
 
@@ -106,9 +60,8 @@ function recover(socket, clientName, filename) {}
 
 -----------------------------------------------------------------
  */
-function deleteFile() {}
 
-
+function deleteFile(client, clientName, filename) {}
 
 
 
@@ -133,6 +86,31 @@ function deposit(socket, clientName, copies, filename, fileContent) {
     }
 
     socket.emit('message', `File ${filename} deposited`);
+}
+
+/* 
+-----------------------------------------------------------------
+
+                FUNÇÃO PARA LISTAR ARQUIVOS
+
+-----------------------------------------------------------------
+*/
+
+function list(socket, clientName) {
+    const clientPath = path.join(DIRECTORY, clientName);
+
+    if (!fs.existsSync(clientPath)) {
+        socket.emit('message', `No files found for ${clientName}`);
+        return;
+    }
+
+    const clientFiles = fs.readdirSync(clientPath);
+
+    if (clientFiles.length > 0) {
+        socket.emit('message', `Files for ${clientName}: ${clientFiles.join(',')}`);
+    } else {
+        socket.emit('message', `No files found for ${clientName}`);
+    }
 }
 
 io.listen(PORT);
