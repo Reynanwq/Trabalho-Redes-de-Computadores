@@ -47,11 +47,37 @@ io.on('connection', (socket) => {
 
 -----------------------------------------------------------------
 */
-function recover(socket, clientName, filename) {}
+function recover(client, clientName, filename) {
+    let fileFound = false;
 
+    const directories = fs.readdirSync(DIRECTORY);
 
+    directories.forEach((folder) => {
+        const folderPath = path.join(DIRECTORY, folder);
+        const folderFiles = fs.readdirSync(folderPath);
 
+        if (folderFiles.includes(clientName)) {
+            const clientPath = path.join(folderPath, clientName);
+            const clientFiles = fs.readdirSync(clientPath);
 
+            if (clientFiles.includes(filename)) {
+                const filePath = path.join(clientPath, filename);
+                const fileContent = fs.readFileSync(filePath);
+
+                const fileSize = Buffer.from(fileContent).length.toString();
+
+                client.write(`${fileSize}\n`);
+                client.write(fileContent);
+
+                fileFound = true;
+            }
+        }
+    });
+
+    if (!fileFound) {
+        client.write(`[WARNING] File ${filename} not found\n`);
+    }
+}
 
 /*
 -----------------------------------------------------------------
@@ -61,7 +87,34 @@ function recover(socket, clientName, filename) {}
 -----------------------------------------------------------------
  */
 
-function deleteFile(client, clientName, filename) {}
+function deleteFile(client, clientName, filename) {
+    let fileDeleted = false;
+
+    const directories = fs.readdirSync(DIRECTORY);
+
+    directories.forEach((folder) => {
+        const folderPath = path.join(DIRECTORY, folder);
+        const folderFiles = fs.readdirSync(folderPath);
+
+        if (folderFiles.includes(clientName)) {
+            const clientPath = path.join(folderPath, clientName);
+            const clientFiles = fs.readdirSync(clientPath);
+
+            if (clientFiles.includes(filename)) {
+                const filePath = path.join(clientPath, filename);
+                fs.unlinkSync(filePath);
+
+                fileDeleted = true;
+            }
+        }
+    });
+
+    if (fileDeleted) {
+        client.write(`[SUCESS] File ${filename} deleted\n`);
+    } else {
+        client.write(`[WARNING] File ${filename} not found\n`);
+    }
+}
 
 
 
