@@ -1,2 +1,5 @@
-- node server.js
-- node cliente.js
+Abra 2 terminais:
+
+No primeiro digite "node server.js"
+
+No segundo digite "node cliente.js"
