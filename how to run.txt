@@ -1,5 +1,49 @@
+-------------- SÓ ESTÁ EXXECUTANDO NO LINUX --------------
+
 Abra 2 terminais:
+No primeiro terminal digite "node server.js"
+No segundo terminal digite "node cliente.js"
 
-No primeiro digite "node server.js"
 
-No segundo digite "node cliente.js"
+-----------------------------------------------------------------------------------------
+
+funcionamento do terminal em que você executou o servidor (digitou server.js)
+a primeira mensagem que deve aparecer é:
+
+[SERVER] Server is now actively monitoring Port : 3000
+
+Após a execusão do "cliente.js", deve receber a seguinte mensagem (ainda no terminal do servidor):
+
+[SERVER] Client connected : (id do cliente)
+
+Caso o terminal do "cliente.js" seja encerrado, deve receber a seguinte mensagem:
+
+[SERVER] Client disconnect : (id do client)
+
+-----------------------------------------------------------------------------------------
+funcionamento do terminal em que você executou o servidor (digitou cleinte.js)
+a primeira mensagem que deve aparecer é:
+
+Connected to server with ID : (id do cliente)
+
+Agora, estamos aptos para realizar as operações: list,deposit,recover e delete
+
+Para que um cliente deposite um arquivo:
+
+- deposit "nome do cliente" "quantidade de copias que deseja depositar" "nome do arquivo" "conteudo do arquivo"
+exemplo: deposit reynan 3 arquivoImportante.txt texto
+
+Para listar os arquivos do cliente:
+
+- list "nome da pasta em que o cliente está" / "nome do cliente"
+exemplo: list 1/reynan
+
+para que um cliente recupere  um arquivo:
+
+- recover "nome do cliente" "nome do arquivo que deseja recuperar" 
+exemplo: recover reynan arquivoImportante.txt
+
+Para que um cliente delete um arquivo:
+
+- delete "nome do cliente" "nome do arquivo"
+exemplo: delete reynan arquivoImportante.txt
