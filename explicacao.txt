@@ -1,10 +1,3 @@
- - Depósito de Arquivos: O cliente informa ao servidor o arquivo que será depositado e a quantidade de cópias que ele deseja armazenar.
-
- - Recuperação de Arquivos: O cliente especifica o nome do arquivo que deseja recuperar. O servidor localiza o arquivo e o retorna ao cliente.
-
- - Remoção de Arquivos: O cliente indica o nome do arquivo que deseja remover, e o servidor procede com a remoção.
-
-
 FUNÇÕES:
 
 - Listar arquivos disponíveis para um cliente.
@@ -12,26 +5,16 @@ FUNÇÕES:
 - Permitir que o cliente recupere um arquivo do servidor.
 - Permite que o cliente exclua um arquivo do servidor.
 
--------------------------- DESCRIÇÃO DETALHADA DE CADA OPERAÇÃO --------------------------
+-------------------------- DESCRIÇÃO DE CADA OPERAÇÃO --------------------------
 
 DEPÓSITO:
-
+O cliente informa ao servidor o seu nome, a quantidade de cópias que deseja armazenar, o nome do arquivo (incluindo o tipo: .txt; .js...) e o conteúdo do arquivo.
 
 RECUPERAÇÃO:
-
+O cliente envia uma solicitação ao servidor especificando o nome do arquivo que deseja recuperar. O servidor procura uma das réplicas do arquivo nas pastas onde foi depositado; se encontrar, o servidor responde ao cliente com o conteúdo do arquivo recuperado.
 
 REMOÇÃO:
+O cliente indica o seu nome e o nome do arquivo que deseja remover. O servidor mapeia e realiza uma busca no diretório principal. Caso encontre a pasta com o nome do cliente, ele realiza outra busca dentro da pasta do cliente, procurando o arquivo que deseja excluir.
 
-
--------------------------- DESCRIÇÃO DAS FUNÇÕES --------------------------
-
-RECOVER:
-
-
-DELETEFILE:
-
-
-DEPOSIT:
-
-
-LIST:
+LISTAR:
+O cliente informa o seu nome e o servidor mapeia e realiza uma busca no diretório principal. Se encontrar a pasta com o nome do cliente, ele realiza outra busca dentro da pasta do cliente, guardando os nomes dos arquivos contidos nela e enviando esses nomes para o cliente.
