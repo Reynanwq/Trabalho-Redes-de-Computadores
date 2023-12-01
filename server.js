@@ -81,6 +81,7 @@ function recover(client, clientName, filename) {
                 client.write(`${fileSize}\n`);
                 //envia para o cliente o conteudo do arquivo
                 client.write(fileContent);
+
                 fileFound = true;
             }
         }
