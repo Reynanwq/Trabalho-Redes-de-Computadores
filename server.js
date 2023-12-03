@@ -2,9 +2,11 @@
 const path = require('path');
 const net = require('net');
 const fs = require('fs');
+const ss = require('socket.io-stream');
+const SERVER = 'localhost';
 var PORT = 3000;
 var portIsFree = false;
-var portInUse = function(port, callback) {
+var portInUse = function(port) {
     var server = net.createServer(function(socket) {
     socket.write('Echo server\r\n');
     socket.pipe(socket);
@@ -18,22 +20,40 @@ var portInUse = function(port, callback) {
     callback(false);
     });
 
-    server.listen(port, '127.0.0.1');
+    server.listen(port, SERVER);
 };
 
-while (portIsFree) {
-  portInUse(PORT, function(returnValue) {
-    if (returnValue == false) portIsFree = true;
-    else PORT++
-  });
+while (!portIsFree) {
+  console.log(PORT)
+
+  portIsFree = !(await portInUse(PORT))
+    
+  if (!portIsFree) PORT++;
+  
 }
+
+console.log(PORT)
 const DIRECTORY = './server/';
-const SERVER = 'localhost';
+
 const HEADER = 1024;
 const { Server } = require("socket.io");
 const io = new Server();
 const ioClient = require("socket.io-client")
-const mirrorlist = ['3000', '3001', '3002', '3003']
+const mirrorlist = ['localhost:3000']
+
+for (let i = 0; i < mirrorlist.length; i++) {
+  const socket = ioClient(`${PORT}:${mirrorlist[i]}`);
+  //Adiciona mirrors para enviar e receber cópias.
+  socket.on("connect", () => {
+    console.log(`Connected to mirror with ID: ${socket.id}`);  
+    socket.emit('command', `addmirror ${PORT}`);
+
+  });
+}
+
+for (let i = 0; i < mirrorlist.length; i++) {
+  if (mirrorlist[i] == PORT) mirrorlist.splice(i, 1) // remove o próprio port da mirrorlist
+}
 
 // Mapeia os clientes conectados ao servidor
 const clients = new Map();
@@ -58,11 +78,14 @@ io.on('connection', (socket) => {
             list(socket, args[0]);
         } else if (command === 'deposit') {
             deposit(socket, args[0], args[1], args[2]);
-        } else if (command === 'recover') {
-            recover(socket, args[0], args[1]);
         } else if (command === 'delete') {
             deleteFile(socket, args[0], args[1]);
-        }
+        } else if (command === 'add_mirror')
+            addMirror(args[0])
+    });
+
+    ss(socket).on('recoverfile', function(stream, data) {
+      recover(client, stream, data.clientName, data.filename)
     });
 
     //acionado após o cliente se desconectar do servidor
@@ -76,11 +99,23 @@ io.on('connection', (socket) => {
 /*
 -----------------------------------------------------------------
 
+                FUNÇÃO PARA ADICIONAR ESPELHO
+
+-----------------------------------------------------------------
+*/
+
+function addMirror(mirror) {
+  if (!mirrorlist.includes(mirror)) mirrorlist.push(mirror)
+}
+
+/*
+-----------------------------------------------------------------
+
                 FUNÇÃO PARA RECUPERAR ARQUIVOS
 
 -----------------------------------------------------------------
 */
-function recover(client, clientName, filename) {
+function recover(client, stream, clientName, filename, mirror = false) {
     let fileFound = false;
 
     //lendo os diretórios dentro do /server/
@@ -99,14 +134,15 @@ function recover(client, clientName, filename) {
             //verifica se o arquivo existe no diretório
             if (clientFiles.includes(filename)) {
                 const filePath = path.join(clientPath, filename);
-                const fileContent = fs.readFileSync(filePath);
+                // const fileContent = fs.readFileSync(filePath);
 
                 //converte o tamanho do arquivo de bytes para string
-                const fileSize = Buffer.from(fileContent).length.toString();
+                //const fileSize = Buffer.from(fileContent).length.toString();
                 //envia para o cliente o tamanho do arquivo 
-                client.write(`${fileSize}\n`);
+                //client.write(`${fileSize}\n`);
                 //envia para o cliente o conteudo do arquivo
-                client.write(fileContent);
+              
+                stream.pipe(fs.createWriteStream(filePath));
 
                 fileFound = true;
             }
@@ -124,7 +160,7 @@ function recover(client, clientName, filename) {
                 FUNÇÃO PARA DELETAR ARQUIVOS
 
 -----------------------------------------------------------------*/
-function deleteFile(client, clientName, filename) {
+function deleteFile(client, clientName, filename, mirror = false) {
     let fileDeleted = false;
 
     //lendo os diretórios dentro do /server/
@@ -150,6 +186,9 @@ function deleteFile(client, clientName, filename) {
             }
         }
     });
+
+    if (!mirror) deleteBackup(mirrorlist, client, clientName)
+
     //mensagem indicando se foi deletado ou não
     if (fileDeleted) {
         client.write(`[SUCESS] File ${filename} deleted\n`);
@@ -168,7 +207,7 @@ function deleteFile(client, clientName, filename) {
 -----------------------------------------------------------------*/
 
 //recebe como parâmetro o cliente, nome do arquivo e o conteudo.
-function deposit(socket, clientName, filename, fileContent) {
+function deposit(socket, clientName, filename, fileContent, mirror = false) {
        //caminho onde o arquivo será depositado
         const clientPath = path.join(path.join(DIRECTORY, PORT), filename);
         //verifica se o diretorio existe, se não: é criado de forma recursiva
@@ -177,7 +216,7 @@ function deposit(socket, clientName, filename, fileContent) {
         }
         const filePath = path.join(clientPath, filename);
         fs.writeFileSync(filePath, fileContent);
-        backup(mirrorlist, clientName, filename, fileContent)
+        if (!mirror) createBackup(mirrorlist, clientName, filename, fileContent)
 
     //mensagem citando que o arquivo foi depositado com sucesso.
     socket.emit('message', `File ${filename} deposited`); 
@@ -187,18 +226,39 @@ function deposit(socket, clientName, filename, fileContent) {
 
 /*-----------------------------------------------------------------
 
-                FUNÇÃO PARA BACKUP DE ARQUIVOS
+                FUNÇÃO PARA CRIAR BACKUP DE ARQUIVOS
 
 -----------------------------------------------------------------*/
 
-function backup(mirrorlist, clientName, filename, fileContent) {
+function createBackup(mirrorlist, clientName, filename, fileContent) {
   for (let i = 0; i < mirrorlist.length(); i++) {
 
-  const socket = io(`http://localhost${mirrorlist[i]}`);
+  const socket = io(`${mirrorlist[i]}`);
   //É acionado quando a conexão com o servidor é estabelecida.
   socket.on("connect", () => {
     console.log(`Connected to server with ID: ${socket.id}`);  
-    socket.emit('command', `deposit ${clientName} ${filename} ${fileContent}`);
+    socket.emit('command', `deposit ${clientName} ${filename} ${fileContent} mirror`);
+
+  });
+
+  }
+
+}
+
+/*-----------------------------------------------------------------
+
+                FUNÇÃO PARA DELETAR BACKUP DE ARQUIVOS
+
+-----------------------------------------------------------------*/
+
+function deleteBackup(mirrorlist, clientName, filename, fileContent) {
+  for (let i = 0; i < mirrorlist.length(); i++) {
+
+  const socket = io(`${mirrorlist[i]}`);
+  //É acionado quando a conexão com o servidor é estabelecida.
+  socket.on("connect", () => {
+    console.log(`Connected to server with ID: ${socket.id}`);  
+    socket.emit('command', `delete ${clientName} ${filename} mirror`);
 
   });
 
@@ -232,6 +292,6 @@ function list(socket, clientName) {
     }
 }
 
-//inicia o servidor na porta=3000 exibindo uma mensagem indicando que o servidor está ativo.
+//inicia o servidor na porta selecionada exibindo uma mensagem indicando que o servidor está ativo.
 io.listen(PORT);
 console.log(`[SERVER] Server is now actively monitoring Port: ${PORT}`);
