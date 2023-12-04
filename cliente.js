@@ -25,9 +25,9 @@ socket.on("connect", () => {
         const command = message[0];
         if (command === 'recover') {
           ss(socket).emit('recoverfile', stream, {clientName: message[1],
-            filename: message[2});
+            filename: message[2]});
           //caminho onde o arquivo será salvo
-        const filePath = path.join(path.join(DIRECTORY, filename);
+        const filePath = path.join(path.join(DIRECTORY, filename));
         //verifica se o diretorio existe, se não: é criado de forma recursiva
         if (!fs.existsSync(clientPath)) {
             fs.mkdirSync(clientPath, { recursive: true });
