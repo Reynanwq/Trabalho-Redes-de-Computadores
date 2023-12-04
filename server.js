@@ -257,13 +257,7 @@ function deposit(socket, clientName, filename, fileContent, mirror = false) {
 function createBackup(mirrorlist, clientName, filename, fileContent) {
   for (let i = 0; i < mirrorlist.length(); i++) {
 
-    const socket = io(`${mirrorlist[i]}`);
-    //É acionado quando a conexão com o servidor é estabelecida.
-    socket.on("connect", () => {
-      console.log(`Connected to server with ID: ${socket.id}`);  
-      socket.emit('command', `deposit ${clientName} ${filename} ${fileContent} mirror`);
-
-    });
+    io.in(mirrorlist[i].id).emit('message', 'deposit clientName filename fileContent')
 
   }
 
