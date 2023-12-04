@@ -1,6 +1,7 @@
 node_nodules/
 yarn.lock
 package-lock.json
-# dependencies
 server
 node_modules
+client 
+.env

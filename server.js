@@ -1,18 +1,19 @@
 /*Importando módulo,definindo porta do servidor e diretório onde os arquivos serãoo armazenados*/
+require('dotenv').config()
 const path = require('path');
 const net = require('net');
 const fs = require('fs');
 const ss = require('socket.io-stream');
-const SERVER = 'localhost';
-let PORT = 3000;
-const DIRECTORY = './server/';
+const SERVER = process.env.SERVER;
+let PORT = process.env.PORT;
+const DIRECTORY = process.env.DIRECTORY;
 
-const HEADER = 1024;
+//const HEADER = 1024;
 const { Server } = require("socket.io");
 const io = new Server();
 const ioClient = require("socket.io-client")
 const mirrorlist = []
-const mirrornames = ["http://localhost:3000"]
+const mirrornames = process.env.MIRRORS.split(" ")
 
 function refreshMirrors() {
   for (let i = 0; i < mirrorlist.length; i++) {

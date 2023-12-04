@@ -1,13 +1,14 @@
 //O módulo socket.io-client tem o objetivo de criar um cliente que se conecta ao servidor usando WebSocket. 
+require('dotenv').config()
 const { io } = require("socket.io-client");
 //O modulo readline é utilizado para ler entrada do terminal de forma assíncrona.
 const readline = require("readline");
 //Cria uma instância do cliente socket.io que se conecta ao servidor na URL
-const socket = io("http://localhost:3000");
+const socket = io(`http://${process.env.SERVER}:${process.env.PORT}`);
 const ss = require('socket.io-stream');
 const fs = require('fs');
 const path = require('path');
-const DIRECTORY = './';
+const DIRECTORY = process.env.CLIENTDIRECTORY;
 
 //É acionado quando a conexão com o servidor é estabelecida.
 socket.on("connect", () => {
