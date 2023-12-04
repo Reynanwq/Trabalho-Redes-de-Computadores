@@ -34,7 +34,8 @@ const createServer = function(currentPort) {
         const socket = ioClient(`${mirrornames[i]}`);
         //Adiciona mirrors para enviar e receber cópias.
         socket.on("connect", () => {
-          console.log(`[SERVER] Connected to mirror ${mirrornames[i]} with ID: ${socket.id}`);  
+          console.log(`[SERVER] Connected to mirror ${mirrornames[i]} with ID: ${socket.id}`); 
+          console.log({url: mirrornames[i], id: socket.id })
           mirrorlist.push({url: mirrornames[i], id: socket.id });
           socket.emit('command', `addmirror http://${SERVER}:${PORT}`);
         });
@@ -42,7 +43,6 @@ const createServer = function(currentPort) {
       }
       
     io.listen(PORT);
-
 
   });
 
@@ -82,8 +82,6 @@ io.on('connection', (socket) => {
     //verifica qual comando o usuario escolheu e envia para as funções responsáveis
     if (command === 'list') {
       list(socket, args[0]);
-    } else if (command === 'deposit') {
-      deposit(socket, args[0], args[1], args[2]);
     } else if (command === 'delete') {
       deleteFile(socket, args[0], args[1]);
     } else if (command === 'addmirror') {
@@ -93,8 +91,13 @@ io.on('connection', (socket) => {
   });
 
   ss(socket).on('recoverfile', function(stream, data) {
-    recover(client, stream, data.clientName, data.filename)
+    recover(socket, stream, data.clientName, data.filename)
   });
+
+  ss(socket).on('depositfile', function(stream, data) {
+    deposit(socket, stream, data.clientName, data.filename)
+  });
+
 
   //acionado após o cliente se desconectar do servidor
   socket.on('disconnect', () => {
@@ -121,8 +124,8 @@ function addMirror(socketID, io, mirror) {
           mirrornames.push(mirror);
           console.log(`[SERVER] Connected to mirror ${mirror} with ID: ${socket.id}`);  
           socket.emit('command', `addmirror http://${SERVER}:${PORT}`);
+          console.log({url: mirror, id: socketID })
           for (let i = 0; i < mirrorlist.length; i++) {
-            console.log(mirrorlist[i])
             socket.emit('command', `addmirror ${mirrorlist[i].url}`);
           
          }
@@ -165,10 +168,16 @@ function recover(client, stream, clientName, filename, mirror = false) {
         //envia para o cliente o tamanho do arquivo 
         //client.write(`${fileSize}\n`);
         //envia para o cliente o conteudo do arquivo
+         if (!fs.existsSync(filePath)) {
+           fileFound = true; 
+            fs.createReadStream(filePath).pipe(stream);
+          //mensagem citando que o arquivo foi recuperado com sucesso.
+          client.write(`File ${filename} recovered`);
+          console.log(`[SERVER] File ${filename} recovered to ${client.id}`)
+          if (!mirror) createBackup(mirrorlist, clientName, filename, filePath)
+          //cria multiplas copias do arquivo para o cliente em diferentes servidores
+        }
 
-        stream.pipe(fs.createWriteStream(filePath));
-
-        fileFound = true;
       }
     }
   });
@@ -231,21 +240,22 @@ function deleteFile(client, clientName, filename, mirror = false) {
 -----------------------------------------------------------------*/
 
 //recebe como parâmetro o cliente, nome do arquivo e o conteudo.
-function deposit(socket, clientName, filename, fileContent, mirror = false) {
+function deposit(client, stream, clientName, filename,  mirror = false) {
   //caminho onde o arquivo será depositado
-  const clientPath = path.join(path.join(DIRECTORY, PORT), filename);
+  const clientPath = path.join(DIRECTORY, clientName);
+  const filePath = path.join(clientPath, filename);
   //verifica se o diretorio existe, se não: é criado de forma recursiva
   if (!fs.existsSync(clientPath)) {
     fs.mkdirSync(clientPath, { recursive: true });
   }
-  const filePath = path.join(clientPath, filename);
-  fs.writeFileSync(filePath, fileContent);
-  if (!mirror) createBackup(mirrorlist, clientName, filename, fileContent)
-
-  //mensagem citando que o arquivo foi depositado com sucesso.
-  socket.emit('message', `File ${filename} deposited`); 
+  stream.pipe(fs.createWriteStream(filePath))
+    //mensagem citando que o arquivo foi depositado com sucesso.
+  client.write(`File ${filename} deposited`);
+  console.log(`[SERVER] File ${filename} received from ${client.id}`)
+  if (!mirror) createBackup(mirrorlist, clientName, filename, filePath)
   //cria multiplas copias do arquivo para o cliente em diferentes servidores
 
+  
 }
 
 /*-----------------------------------------------------------------
@@ -254,10 +264,18 @@ function deposit(socket, clientName, filename, fileContent, mirror = false) {
 
 -----------------------------------------------------------------*/
 
-function createBackup(mirrorlist, clientName, filename, fileContent) {
-  for (let i = 0; i < mirrorlist.length(); i++) {
+function createBackup(mirrorlist, clientName, filename, filePath) {
+  for (let i = 0; i < mirrorlist.length; i++) {
+    for (let socketid in io.sockets.sockets) {
+      const socket = io.sockets.sockets.get(socketid);
+      const stream = ss.createStream();
+      ss(socket).emit('depositfile', stream, {clientName: clientName,
+      filename: filename});
+      stream.pipe(fs.createWriteStream(filePath));
 
-    io.in(mirrorlist[i].id).emit('message', 'deposit clientName filename fileContent')
+
+    }
+    io.in(mirrorlist[i].id).emit('message', 'deposit clientName filename filePath')
 
   }
 

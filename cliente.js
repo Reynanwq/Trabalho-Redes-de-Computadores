@@ -5,6 +5,10 @@ const readline = require("readline");
 //Cria uma instância do cliente socket.io que se conecta ao servidor na URL
 const socket = io("http://localhost:3000");
 const ss = require('socket.io-stream');
+const fs = require('fs');
+const path = require('path');
+const DIRECTORY = './';
+
 //É acionado quando a conexão com o servidor é estabelecida.
 socket.on("connect", () => {
     console.log(`Connected to server with ID: ${socket.id}`);
@@ -21,20 +25,36 @@ socket.on("connect", () => {
     //evento acionado após o usuário pressionar "Enter após digitar um comando"
     rl.on('line', (input) => {
         // Envia o comando digitado pelo usuário para o servidor
-        const message = data.toString().trim().split(' ');
+        const message = input.toString().trim().split(' ');
         const command = message[0];
         if (command === 'recover') {
+          const stream = ss.createStream();
           ss(socket).emit('recoverfile', stream, {clientName: message[1],
             filename: message[2]});
           //caminho onde o arquivo será salvo
-        const filePath = path.join(path.join(DIRECTORY, filename));
+        const filePath = path.join(path.join(DIRECTORY, message[3]));
         //verifica se o diretorio existe, se não: é criado de forma recursiva
-        if (!fs.existsSync(clientPath)) {
-            fs.mkdirSync(clientPath, { recursive: true });
+        if (!fs.existsSync(filePath)) {
+            fs.mkdirSync(DIRECTORY, { recursive: true });
         }
-        fs.createReadStream(filePath).pipe(stream);
+        stream.pipe(fs.createWriteStream(filePath));
+        
         } 
-        else socket.emit('command', input);
+        else if (command === 'deposit') {
+        if (!fs.existsSync(message[2])) {
+            console.log("File not found")
+        } else { 
+          const filePath = path.join(path.join(DIRECTORY, message[2]));
+          const stream = ss.createStream();
+           ss(socket).emit('depositfile', stream, {clientName: message[1],
+            filename: message[2]});
+          fs.createReadStream(filePath).pipe(stream);
+        }
+
+        }
+        else {
+          socket.emit('command', input);
+        }
 
         // Limpa o prompt e exibe novamente
         rl.prompt();
