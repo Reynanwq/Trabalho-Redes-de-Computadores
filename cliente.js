@@ -28,20 +28,31 @@ socket.on("connect", () => {
         // Envia o comando digitado pelo usuário para o servidor
         const message = input.toString().trim().split(' ');
         const command = message[0];
-        if (command === 'recover') {
+        if (command === 'help') {
+          console.log(`\nCOMMANDS:\n 
+deposit - syntax: deposit username filename \nuploads a file to the server.\n
+recover - syntax: recover username filename savepath \ndownloads a file from the server in the given local filepath.\n
+delete - syntax: delete username filename \ndeletes a file from the server.\n
+list - syntax: list username \nlists the avaliable files to download for that username. \n
+help - shows this help.\n`)
+        }
+        else if (command === 'recover') {
+          if (message[2]) {
+
           const stream = ss.createStream();
           ss(socket).emit('recoverfile', stream, {clientName: message[1],
             filename: message[2]});
           //caminho onde o arquivo será salvo
-        const filePath = path.join(path.join(DIRECTORY, message[3]));
-        //verifica se o diretorio existe, se não: é criado de forma recursiva
-        if (!fs.existsSync(filePath)) {
+          const filePath = path.join(path.join(DIRECTORY, message[3]), filename);
+          //verifica se o diretorio existe, se não: é criado de forma recursiva
+          if (!fs.existsSync(filePath)) {
             fs.mkdirSync(DIRECTORY, { recursive: true });
-        }
-        stream.pipe(fs.createWriteStream(filePath));
-        
+          }
+          stream.pipe(fs.createWriteStream(filePath));
+          } else console.log("Please write all arguments!");
         } 
         else if (command === 'deposit') {
+        if (message[2]) {
         if (!fs.existsSync(message[2])) {
             console.log("File not found")
         } else { 
@@ -52,6 +63,7 @@ socket.on("connect", () => {
           fs.createReadStream(filePath).pipe(stream);
         }
 
+        } else console.log("Please write all arguments!");
         }
         else {
           socket.emit('command', input);

@@ -82,17 +82,17 @@ io.on('connection', (socket) => {
 
     //verifica qual comando o usuario escolheu e envia para as funções responsáveis
     if (command === 'list') {
-      list(socket, args[0]);
+      if (args[0]) list(socket, args[0]); else client.write("Please write all arguments!")
     } else if (command === 'delete') {
-      deleteFile(socket, args[0], args[1]);
+      if (args[2]) deleteFile(socket, args[0], args[1]); else client.write("Please write all arguments!");
     } else if (command === 'addmirror') {
-      addMirror(socket.id, io, args[0])
-    } else if (command === "log")
-      console.log(args[0]) 
+      if (args[0]) addMirror(socket.id, io, args[0]); else client.write("Please write all arguments!");
+    }
+
   });
 
   ss(socket).on('recoverfile', function(stream, data) {
-    recover(socket, stream, data.clientName, data.filename)
+    recover(socket, stream, data.clientName, data.filename) //função para recuperar arquivos
   });
 
   ss(socket).on('depositfile', function(stream, data) {
@@ -276,7 +276,7 @@ function createBackup(mirrorlist, clientName, filename, filePath) {
 
 
     }
-    io.in(mirrorlist[i].id).emit('message', 'deposit clientName filename filePath')
+    
 
   }
 
@@ -290,15 +290,9 @@ function createBackup(mirrorlist, clientName, filename, filePath) {
 
 function deleteBackup(mirrorlist, clientName, filename, fileContent) {
   for (let i = 0; i < mirrorlist.length(); i++) {
-
-    const socket = io(`${mirrorlist[i]}`);
-    //É acionado quando a conexão com o servidor é estabelecida.
-    socket.on("connect", () => {
-      console.log(`Connected to server with ID: ${socket.id}`);  
-      socket.emit('command', `delete ${clientName} ${filename} mirror`);
-
-    });
-
+    for (let socketid in io.sockets.sockets) {
+      io.in(mirrorlist[i].id).emit('message', 'delete clientName filename')
+    }
   }
 
 }
