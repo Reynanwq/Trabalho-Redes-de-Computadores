@@ -29,52 +29,79 @@ socket.on("connect", () => {
         const message = input.toString().trim().split(' ');
         const command = message[0];
         if (command === 'help') {
-          console.log(`\nCOMMANDS:\n 
+            console.log(`\nCOMMANDS:\n 
 deposit - syntax: deposit username filename \nuploads a file to the server.\n
 recover - syntax: recover username filename savepath \ndownloads a file from the server in the given local filepath.\n
 delete - syntax: delete username filename \ndeletes a file from the server.\n
 list - syntax: list username \nlists the avaliable files to download for that username. \n
 help - shows this help.\n`)
-        }
-        else if (command === 'recover') {
-          if (message[2]) {
+        } else if (command === 'recover') {
+            if (message[3]) {
+                const stream = ss.createStream();
+                ss(socket).emit('recoverfile', stream, {
+                    clientName: message[1],
+                    filename: message[2]
+                });
+                // caminho onde o arquivo será salvo
+                const filePath = path.join(path.join(DIRECTORY, message[3]), message[2]);
+                // verifica se o diretório existe, se não: é criado de forma recursiva
+                if (!fs.existsSync(path.join(DIRECTORY, message[3]))) {
+                    fs.mkdirSync(path.join(DIRECTORY, message[3]), { recursive: true });
+                }
 
-          const stream = ss.createStream();
-          ss(socket).emit('recoverfile', stream, {clientName: message[1],
-            filename: message[2]});
-          //caminho onde o arquivo será salvo
-          const filePath = path.join(path.join(DIRECTORY, message[3]), filename);
-          //verifica se o diretorio existe, se não: é criado de forma recursiva
-          if (!fs.existsSync(filePath)) {
-            fs.mkdirSync(DIRECTORY, { recursive: true });
-          }
-          stream.pipe(fs.createWriteStream(filePath));
-          } else console.log("Please write all arguments!");
-        } 
-        else if (command === 'deposit') {
-        if (message[2]) {
-        if (!fs.existsSync(message[2])) {
-            console.log("File not found")
-        } else { 
-          const filePath = path.join(path.join(DIRECTORY, message[2]));
-          if (fs.existsSync(filePath)) {
-            const stream = ss.createStream();
-            ss(socket).emit('depositfile', stream, {clientName: message[1],
-            filename: message[2]});
-            fs.createReadStream(filePath).pipe(stream); 
-          } else {
-            console.log("File not found!")
-          } 
-        }
+                const fileWriteStream = fs.createWriteStream(filePath);
 
-        } else console.log("Please write all arguments! If unsure, use command help");
-        }
-        else {
-          socket.emit('command', input);
+                // Recebe o tamanho do arquivo do servidor
+                ss(socket).on('recoverfile', function(stream, data) {
+                    const fileSize = parseInt(data, 10);
+                    stream.pipe(fileWriteStream);
+
+                    // Monitora o progresso do download
+                    let receivedSize = 0;
+                    stream.on('data', (chunk) => {
+                        receivedSize += chunk.length;
+                        const progress = (receivedSize / fileSize) * 100;
+                        process.stdout.clearLine();
+                        process.stdout.cursorTo(0);
+                        process.stdout.write(`Downloading: ${progress.toFixed(2)}%`);
+                    });
+
+                    // Quando o download é concluído
+                    stream.on('end', () => {
+                        process.stdout.write('\n');
+                        console.log(`[CLIENT] File ${message[2]} recovered to ${filePath}`);
+                        rl.prompt();
+                    });
+                });
+            } else {
+                console.log("Please write all arguments!");
+            }
+        } else if (command === 'deposit') {
+            if (message[2]) {
+                if (!fs.existsSync(message[2])) {
+                    console.log("File not found")
+                } else {
+                    const filePath = path.join(path.join(DIRECTORY, message[2]));
+                    if (fs.existsSync(filePath)) {
+                        const stream = ss.createStream();
+                        ss(socket).emit('depositfile', stream, {
+                            clientName: message[1],
+                            filename: message[2]
+                        });
+                        fs.createReadStream(filePath).pipe(stream).on("end", () => {
+                            rl.prompt();
+                        });
+                    } else {
+                        console.log("File not found!")
+                    }
+                }
+
+            } else console.log("Please write all arguments! If unsure, use command help");
+        } else {
+            socket.emit('command', input);
         }
 
         // Limpa o prompt e exibe novamente
-        rl.prompt();
     });
 
     //o evento "close" é acionado após o usuario fechar o terminal (ctrl + c)
