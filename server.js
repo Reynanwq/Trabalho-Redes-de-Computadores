@@ -4,8 +4,8 @@ const path = require('path');
 const net = require('net');
 const fs = require('fs');
 const ss = require('socket.io-stream');
-const SERVER = process.env.SERVER;
-let PORT = process.env.PORT;
+const SERVER = parseInt(process.env.SERVER);
+let PORT = parseInt(process.env.PORT);
 const DIRECTORY = process.env.DIRECTORY;
 
 //const HEADER = 1024;
