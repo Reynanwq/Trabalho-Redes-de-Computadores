@@ -57,13 +57,17 @@ help - shows this help.\n`)
             console.log("File not found")
         } else { 
           const filePath = path.join(path.join(DIRECTORY, message[2]));
-          const stream = ss.createStream();
-           ss(socket).emit('depositfile', stream, {clientName: message[1],
+          if (!fs.existsSync(filePath)) {
+            const stream = ss.createStream();
+            ss(socket).emit('depositfile', stream, {clientName: message[1],
             filename: message[2]});
-          fs.createReadStream(filePath).pipe(stream);
+            fs.createReadStream(filePath).pipe(stream); 
+          } else {
+            console.log("File not found!")
+          } 
         }
 
-        } else console.log("Please write all arguments!");
+        } else console.log("Please write all arguments! If unsure, use command help");
         }
         else {
           socket.emit('command', input);
