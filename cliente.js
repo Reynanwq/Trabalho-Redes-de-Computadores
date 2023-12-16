@@ -57,7 +57,7 @@ help - shows this help.\n`)
             console.log("File not found")
         } else { 
           const filePath = path.join(path.join(DIRECTORY, message[2]));
-          if (!fs.existsSync(filePath)) {
+          if (fs.existsSync(filePath)) {
             const stream = ss.createStream();
             ss(socket).emit('depositfile', stream, {clientName: message[1],
             filename: message[2]});
