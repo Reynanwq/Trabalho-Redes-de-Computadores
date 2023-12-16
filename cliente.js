@@ -48,7 +48,9 @@ help - shows this help.\n`)
           if (!fs.existsSync(filePath)) {
             fs.mkdirSync(DIRECTORY, { recursive: true });
           }
-          stream.pipe(fs.createWriteStream(filePath));
+          stream.pipe(fs.createWriteStream(filePath)).on("end", () => {
+            rl.prompt();
+          });
           } else console.log("Please write all arguments!");
         } 
         else if (command === 'deposit') {
@@ -61,7 +63,9 @@ help - shows this help.\n`)
             const stream = ss.createStream();
             ss(socket).emit('depositfile', stream, {clientName: message[1],
             filename: message[2]});
-            fs.createReadStream(filePath).pipe(stream); 
+            fs.createReadStream(filePath).pipe(stream).on("end", () => {
+             rl.prompt(); 
+            });   
           } else {
             console.log("File not found!")
           } 
@@ -74,8 +78,7 @@ help - shows this help.\n`)
         }
 
         // Limpa o prompt e exibe novamente
-        rl.prompt();
-    });
+      });
 
     //o evento "close" é acionado após o usuario fechar o terminal (ctrl + c)
     rl.on('close', () => {
