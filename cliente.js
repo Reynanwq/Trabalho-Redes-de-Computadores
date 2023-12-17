@@ -9,11 +9,11 @@ const ss = require('socket.io-stream');
 const fs = require('fs');
 const path = require('path');
 const DIRECTORY = process.env.CLIENTDIRECTORY;
+const DIRECTORYSERVER = process.env.DIRECTORY;
 
 //É acionado quando a conexão com o servidor é estabelecida.
 socket.on("connect", () => {
     console.log(`Connected to server with ID: ${socket.id}`);
-
     //interface para ler a entrada do usuario a partir do terminal
     const rl = readline.createInterface({
         input: process.stdin,
@@ -28,57 +28,43 @@ socket.on("connect", () => {
         // Envia o comando digitado pelo usuário para o servidor
         const message = input.toString().trim().split(' ');
         const command = message[0];
+        const args = message.slice(1);
         if (command === 'help') {
-          console.log(`\nCOMMANDS:\n 
+            console.log(`\nCOMMANDS:\n 
 deposit - syntax: deposit username filename \nuploads a file to the server.\n
 recover - syntax: recover username filename savepath \ndownloads a file from the server in the given local filepath.\n
 delete - syntax: delete username filename \ndeletes a file from the server.\n
 list - syntax: list username \nlists the avaliable files to download for that username. \n
 help - shows this help.\n`)
-        }
-        else if (command === 'recover') {
-          if (message[2]) {
+        } else if (command === 'recover') {
+            recover(socket, args[0], args[1]);
+        } else if (command === 'deposit') {
+            if (message[2]) {
+                if (!fs.existsSync(message[2])) {
+                    console.log("File not found")
+                } else {
+                    const filePath = path.join(path.join(DIRECTORY, message[2]));
+                    if (fs.existsSync(filePath)) {
+                        const stream = ss.createStream();
+                        ss(socket).emit('depositfile', stream, {
+                            clientName: message[1],
+                            filename: message[2]
+                        });
+                        fs.createReadStream(filePath).pipe(stream).on("end", () => {
+                            rl.prompt();
+                        });
+                    } else {
+                        console.log("File not found!")
+                    }
+                }
 
-          const stream = ss.createStream();
-          ss(socket).emit('recoverfile', stream, {clientName: message[1],
-            filename: message[2]});
-          //caminho onde o arquivo será salvo
-          const filePath = path.join(path.join(DIRECTORY, message[3]), filename);
-          //verifica se o diretorio existe, se não: é criado de forma recursiva
-          if (!fs.existsSync(filePath)) {
-            fs.mkdirSync(DIRECTORY, { recursive: true });
-          }
-          stream.pipe(fs.createWriteStream(filePath)).on("end", () => {
-            rl.prompt();
-          });
-          } else console.log("Please write all arguments!");
-        } 
-        else if (command === 'deposit') {
-        if (message[2]) {
-        if (!fs.existsSync(message[2])) {
-            console.log("File not found")
-        } else { 
-          const filePath = path.join(path.join(DIRECTORY, message[2]));
-          if (fs.existsSync(filePath)) {
-            const stream = ss.createStream();
-            ss(socket).emit('depositfile', stream, {clientName: message[1],
-            filename: message[2]});
-            fs.createReadStream(filePath).pipe(stream).on("end", () => {
-             rl.prompt(); 
-            });   
-          } else {
-            console.log("File not found!")
-          } 
-        }
-
-        } else console.log("Please write all arguments! If unsure, use command help");
-        }
-        else {
-          socket.emit('command', input);
+            } else console.log("Please write all arguments! If unsure, use command help");
+        } else {
+            socket.emit('command', input);
         }
 
         // Limpa o prompt e exibe novamente
-      });
+    });
 
     //o evento "close" é acionado após o usuario fechar o terminal (ctrl + c)
     rl.on('close', () => {
