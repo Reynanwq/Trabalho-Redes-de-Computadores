@@ -4,14 +4,17 @@ const net = require('net');
 const fs = require('fs');
 const PORT = 3000;
 const DIRECTORY = './server/';
+const DIRECTORYCLIENT = '/client/';
 const SERVER = 'localhost';
 const HEADER = 1024;
 const { Server } = require("socket.io");
 const io = new Server();
-
+const ss = require('socket.io-stream');
 // Mapeia os clientes conectados ao servidor
 const clients = new Map();
-
+// Utiliza o socket.io-stream para transmitir o conteúdo do arquivo para o cliente
+const stream = ss.createStream();
+const streamifier = require('streamifier');
 
 //acionado após o cliente se concectar ao servidor
 io.on('connection', (socket) => {
@@ -31,7 +34,7 @@ io.on('connection', (socket) => {
         if (command === 'list') {
             list(socket, args[0]);
         } else if (command === 'deposit') {
-            deposit(socket, args[0], parseInt(args[1]), args[2], args[3]);
+            deposit(socket, args[0], args[1]);
         } else if (command === 'recover') {
             recover(socket, args[0], args[1]);
         } else if (command === 'delete') {
@@ -141,23 +144,47 @@ function deleteFile(client, clientName, filename) {
 
 -----------------------------------------------------------------*/
 
-//recebe como parâmetro o cliente,quanntidade de copias, nome do arquivo e o conteudo.
-function deposit(socket, clientName, copies, filename, fileContent) {
-    //cria multiplas copias do arquivo para o cliente em diferentes diretórios
-    for (let i = 0; i < copies; i++) {
-        //caminho onde o arquivo será depositado
-        const clientPath = path.join(DIRECTORY, `${i}`, clientName);
-        //verifica se o diretorio existe, se não: é criado de forma recursiva
+// Recebe como parâmetro o cliente, nome do cliente, nome do arquivo e o conteúdo.
+function deposit(socket, clientName, filename) {
+    const clientFilePath = path.join(__dirname, DIRECTORYCLIENT, filename);
+
+    // Verifica se o arquivo existe dentro da pasta /client/
+    if (!fs.existsSync(clientFilePath)) {
+        socket.emit('message', `File ${filename} not found in /client/`);
+        return;
+    }
+    const directories = fs.readdirSync(DIRECTORY);
+
+    // Itera sobre os diretórios para cada cópia
+    directories.forEach((folder) => {
+        const clientPath = path.join(DIRECTORY, folder, clientName);
+
+        // Verifica se o diretório existe, se não: é criado de forma recursiva
         if (!fs.existsSync(clientPath)) {
             fs.mkdirSync(clientPath, { recursive: true });
         }
-        const filePath = path.join(clientPath, filename);
-        fs.writeFileSync(filePath, fileContent);
-    }
 
-    //mensagem citando que o arquivo foi depositado com sucesso.
-    socket.emit('message', `File ${filename} deposited`);
+        const filePath = path.join(clientPath, filename);
+
+        // Lê o conteúdo do arquivo
+        const fileContent = fs.readFileSync(clientFilePath);
+
+        // Cria o arquivo no servidor
+        fs.writeFileSync(filePath, fileContent);
+
+        // Mensagem indicando que o arquivo foi depositado com sucesso.
+        socket.emit('message', `File ${filename} deposited`);
+
+        // Utiliza o socket.io-stream para transmitir o conteúdo do arquivo para o cliente
+        const stream = ss.createStream();
+        ss(socket).emit('file', stream, { name: filename });
+
+        // Usa o streamifier para converter o buffer do arquivo em um stream
+        const fileStream = streamifier.createReadStream(fileContent);
+        fileStream.pipe(stream);
+    });
 }
+
 
 /*-----------------------------------------------------------------
 
