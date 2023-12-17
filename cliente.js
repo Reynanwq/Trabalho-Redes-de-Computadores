@@ -44,11 +44,6 @@ help - shows this help.\n`);
             rl.prompt();
         } else if (command === 'recover') {
             const clientFilePath = path.join(__dirname, DIRECTORY, message[2]);
-            // Verifica se o arquivo existe dentro da pasta /client/
-            if (!fs.existsSync(clientFilePath)) {
-                socket.emit('message', `File ${message[2]} not found in /client/`);
-                return;
-            }
 
             if (message[2]) {
 
