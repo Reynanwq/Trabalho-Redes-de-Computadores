@@ -72,7 +72,7 @@ help - shows this help.\n`);
           if (fs.existsSync(filePath)) {
             const stream = ss.createStream();
             ss(socket).emit('depositfile', stream, {clientName: message[1],
-            filename: message[2]});
+            filename: message[2], mirror: false});
             fs.createReadStream(filePath).pipe(stream)
             stream.on("end", () => {
               setTimeout(() => rl.prompt(), 100);
