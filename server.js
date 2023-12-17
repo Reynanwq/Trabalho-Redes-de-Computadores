@@ -294,7 +294,7 @@ function createBackup(mirrorlist, clientName, filename, filePath, io) {
 -----------------------------------------------------------------*/
 
 function deleteBackup(mirrorlist, clientName, filename, fileContent) {
-  for (let i = 0; i < mirrorlist.length(); i++) {
+  for (let i = 0; i < mirrorlist.length; i++) {
     for (let socketid in io.sockets.sockets) {
       io.in(mirrorlist[i].id).emit('message', 'delete clientName filename')
     }
