@@ -83,11 +83,11 @@ io.on('connection', (socket) => {
 
     //verifica qual comando o usuario escolheu e envia para as funções responsáveis
     if (command === 'list') {
-      if (args[0]) list(socket, args[0]); else socket.write("Please write all arguments!")
+      if (args[0]) list(socket, args[0]); else socket.write("Please write all arguments! If unsure, use command help")
     } else if (command === 'delete') {
-      if (args[1]) deleteFile(socket, args[0], args[1]); else socket.write("Please write all arguments!");
+      if (args[1]) deleteFile(socket, args[0], args[1]); else socket.write("Please write all arguments! If unsure, use command help.");
     } else if (command === 'addmirror') {
-      if (args[0]) addMirror(socket.id, io, args[0]); else socket.write("Please write all arguments!");
+      if (args[0]) addMirror(socket.id, io, args[0]); else socket.write("Please write all arguments! If unsure, use command help.");
     }
 
   });
@@ -121,7 +121,7 @@ function addMirror(socketID, io, mirror) {
   if (!mirrornames.includes(mirror) && mirror !== `http://${SERVER}:${PORT}`) { 
     mirrorlist.push({url: mirror, id: socketID });
     const socket = ioClient(mirror); 
-        //Adiciona mirrors para enviar e receber cópias.
+        // Adiciona mirrors para enviar e receber cópias.
         socket.on("connect", () => {
           mirrornames.push(mirror);
           console.log(`[SERVER] Connected to mirror ${mirror} with ID: ${socket.id}`);  
@@ -158,10 +158,8 @@ function recover(client, stream, clientName, filename, mirror = false) {
     // console.log(folderPath);
     // verifica se o diretório do cliente existe dentro do destino de copia
 
-      const clientFiles = fs.readdirSync(folderPath);
-
       //verifica se o arquivo existe no diretório
-      if (clientFiles.includes(filename)) {
+      if (folderFiles.includes(filename)) {
         const filePath = path.join(folderPath, filename);
         
 
@@ -194,6 +192,8 @@ function recover(client, stream, clientName, filename, mirror = false) {
 
 -----------------------------------------------------------------*/
 function deleteFile(client, clientName, filename, mirror = false) {
+  
+
   let fileDeleted = false;
 
   //lendo os diretórios dentro do /server/
@@ -201,22 +201,21 @@ function deleteFile(client, clientName, filename, mirror = false) {
 
   //itera sobre os diretórios para cada copia
   directories.forEach((folder) => {
+
+    if (folder !== clientName) return;
     const folderPath = path.join(DIRECTORY, folder);
     const folderFiles = fs.readdirSync(folderPath);
 
     //verifica se o diretório do cliente existe dentro do destino de copia
-    if (folderFiles.includes(clientName)) {
-      const clientPath = path.join(folderPath, clientName);
-      //lendo os arquivo do ditetório do cliente
-      const clientFiles = fs.readdirSync(clientPath);
-
+    if (folderFiles.includes(filename)) {
+      
       //verifica se o arquivo existe no diretório
-      if (clientFiles.includes(filename)) {
-        const filePath = path.join(clientPath, filename);
+      const filepath = path.join(folderPath, filename);
+      
         //elimina o arquivo
-        fs.unlinkSync(filePath);
+        fs.unlinkSync(filepath);
         fileDeleted = true;
-      }
+      
     }
   });
 
@@ -270,7 +269,7 @@ function deposit(client, stream, clientName, filename, mirror, io) {
 
 function createBackup(mirrorlist, clientName, filename, filePath, io) {
   for (let i = 0; i < mirrorlist.length; i++) {
-    console.log("a", io);
+    // console.log("a", io);
     for (let socketid in io.sockets.sockets) {
       const socket = io.sockets.sockets.get(socketid);
       console.log(socket);

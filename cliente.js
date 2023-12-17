@@ -44,7 +44,7 @@ help - shows this help.\n`);
           rl.prompt();
         }
         else if (command === 'recover') {
-          if (message[2]) {
+          if (message[3]) {
 
           const stream = ss.createStream();
           ss(socket).emit('recoverfile', stream, {clientName: message[1],
@@ -87,7 +87,7 @@ help - shows this help.\n`);
         }
         else {
           socket.emit('command', input);
-          rl.prompt();
+          setTimeout(() => rl.prompt(), 100);
         }
 
         // Limpa o prompt e exibe novamente
