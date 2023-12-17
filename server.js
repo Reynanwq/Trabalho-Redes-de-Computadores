@@ -36,7 +36,7 @@ const createServer = function(currentPort) {
         const socket = ioClient(`${mirrornames[i]}`);
         //Adiciona mirrors para enviar e receber cópias.
         socket.on("connect", () => {
-          console.log(`[SERVER] Connected to mirror ${mirrornames[i]} with ID: ${socket.id}`); 
+          console.log(`[SERVER] Found mirror ${mirrornames[i]} with ID: ${socket.id}`); 
           console.log({url: mirrornames[i], id: socket.id })
           mirrorlist.push({url: mirrornames[i], id: socket.id });
           socket.emit('command', `addmirror http://${SERVER}:${PORT}`);
@@ -97,7 +97,7 @@ io.on('connection', (socket) => {
   });
 
   ss(socket).on('depositfile', function(stream, data) {
-    deposit(socket, stream, data.clientName, data.filename, data.mirror, io)
+    deposit(socket, stream, data.clientName, data.filename, data.mirror)
   });
 
 
@@ -253,7 +253,7 @@ function deposit(client, stream, clientName, filename, mirror, io) {
      //mensagem citando que o arquivo foi depositado com sucesso.
   client.write(`File ${filename} deposited`);
   console.log(`[SERVER] File ${filename} received from ${client.id}`)
-  if (!mirror) createBackup(mirrorlist, clientName, filename, filePath, io)
+  if (!mirror) createBackup(mirrorlist, clientName, filename, filePath)
   //cria multiplas copias do arquivo para o cliente em diferentes servidores
 
   })
@@ -267,18 +267,16 @@ function deposit(client, stream, clientName, filename, mirror, io) {
 
 -----------------------------------------------------------------*/
 
-function createBackup(mirrorlist, clientName, filename, filePath, io) {
+function createBackup(mirrorlist, clientName, filename, filePath) {
   for (let i = 0; i < mirrorlist.length; i++) {
-    // console.log("a", io);
-    for (let socketid in io.sockets.sockets) {
-      const socket = io.sockets.sockets.get(socketid);
-      console.log(socket);
+    for (let mirror in mirrorlist) {
+      const socket = ioClient(mirror.id);
       const stream = ss.createStream();
-      ss(socket).emit('depositfile', stream, {clientName: clientName,
-      filename: filename, mirror: true});
-      stream.pipe(fs.createWriteStream(filePath));
-
-
+      
+        ss(socket).emit('depositfile', stream, {clientName: clientName,
+        filename: filename, mirror: true});
+        stream.pipe(fs.createWriteStream(filePath));
+      
     }
     
 
