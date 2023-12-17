@@ -15,7 +15,7 @@
     "nodemon": "^3.0.1",
     "socket.io": "^4.7.2",
     "socket.io-client": "^4.7.2",
-    "socket.io-stream": "^0.9.1",
+    "socket.io-stream": "^0.5.3",
     "tcp-port-used": "^1.0.2"
   }
 }
