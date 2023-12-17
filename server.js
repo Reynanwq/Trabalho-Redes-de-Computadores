@@ -151,36 +151,34 @@ function recover(client, stream, clientName, filename, mirror = false) {
 
   //itera sobre os diretórios para cada copia
   directories.forEach((folder) => {
+    if (folder !== clientName) return;
     const folderPath = path.join(DIRECTORY, folder);
     const folderFiles = fs.readdirSync(folderPath);
+    // console.log(folderPath);
+    // verifica se o diretório do cliente existe dentro do destino de copia
 
-    //verifica se o diretório do cliente existe dentro do destino de copia
-    if (folderFiles.includes(clientName)) {
-      const clientPath = path.join(folderPath, clientName);
-      const clientFiles = fs.readdirSync(clientPath);
+      const clientFiles = fs.readdirSync(folderPath);
 
       //verifica se o arquivo existe no diretório
       if (clientFiles.includes(filename)) {
-        const filePath = path.join(clientPath, filename);
-        // const fileContent = fs.readFileSync(filePath);
+        const filePath = path.join(folderPath, filename);
+        
 
-        //converte o tamanho do arquivo de bytes para string
-        //const fileSize = Buffer.from(fileContent).length.toString();
-        //envia para o cliente o tamanho do arquivo 
-        //client.write(`${fileSize}\n`);
-        //envia para o cliente o conteudo do arquivo
-         if (!fs.existsSync(filePath)) {
+         if (fs.existsSync(filePath)) {
            fileFound = true; 
             fs.createReadStream(filePath).pipe(stream);
-          //mensagem citando que o arquivo foi recuperado com sucesso.
-          client.write(`File ${filename} recovered`);
-          console.log(`[SERVER] File ${filename} recovered to ${client.id}`)
-          if (!mirror) createBackup(mirrorlist, clientName, filename, filePath)
-          //cria multiplas copias do arquivo para o cliente em diferentes servidores
-        }
+             stream.on("end", () => {
+              //mensagem citando que o arquivo foi recuperado com sucesso.
+              client.write(`File ${filename} recovered\n`);
+              console.log(`[SERVER] File ${filename} recovered to ${client.id}`)
+              if (!mirror) createBackup(mirrorlist, clientName, filename, filePath)
+              //cria multiplas copias do arquivo para o cliente em diferentes servidores
+            });
+          
+         }
 
       }
-    }
+    
   });
 
   //caso não encontrado, envia mensagem para o cliente
@@ -249,13 +247,15 @@ function deposit(client, stream, clientName, filename,  mirror = false) {
   if (!fs.existsSync(clientPath)) {
     fs.mkdirSync(clientPath, { recursive: true });
   }
-  stream.pipe(fs.createWriteStream(filePath))
-    //mensagem citando que o arquivo foi depositado com sucesso.
+  stream.pipe(fs.createWriteStream(filePath)).on(end => {
+     //mensagem citando que o arquivo foi depositado com sucesso.
   client.write(`File ${filename} deposited`);
   console.log(`[SERVER] File ${filename} received from ${client.id}`)
   if (!mirror) createBackup(mirrorlist, clientName, filename, filePath)
   //cria multiplas copias do arquivo para o cliente em diferentes servidores
 
+  })
+   
   
 }
 

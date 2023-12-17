@@ -10,7 +10,7 @@ No segundo terminal digite "node cliente.js"
 funcionamento do terminal em que você executou o servidor (digitou server.js)
 a primeira mensagem que deve aparecer é:
 
-[SERVER] Server is now actively monitoring Port : 3000
+[SERVER] Server is now actively monitoring Port : X
 
 Após a execusão do "cliente.js", deve receber a seguinte mensagem (ainda no terminal do servidor):
 
@@ -30,8 +30,8 @@ Agora, estamos aptos para realizar as operações: list,deposit,recover e delete
 
 Para que um cliente deposite um arquivo:
 
-- deposit "nome do cliente" "quantidade de copias que deseja depositar" "nome do arquivo" "conteudo do arquivo"
-exemplo: deposit reynan 3 arquivoImportante.txt texto
+- deposit "nome do cliente" "nome do arquivo"
+exemplo: deposit reynan arquivoImportante.txt 
 
 Para listar os arquivos do cliente:
 
