@@ -73,8 +73,9 @@ help - shows this help.\n`);
             const stream = ss.createStream();
             ss(socket).emit('depositfile', stream, {clientName: message[1],
             filename: message[2]});
-            fs.createReadStream(filePath).pipe(stream).on("end", () => {
-            rl.prompt()
+            fs.createReadStream(filePath).pipe(stream)
+            stream.on("end", () => {
+              setTimeout(() => rl.prompt(), 100);
             });   
           } else {
             console.log("File not found!")

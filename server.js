@@ -4,7 +4,7 @@ const path = require('path');
 const net = require('net');
 const fs = require('fs');
 const ss = require('socket.io-stream');
-const SERVER = parseInt(process.env.SERVER);
+const SERVER = process.env.SERVER;
 let PORT = parseInt(process.env.PORT);
 const DIRECTORY = process.env.DIRECTORY;
 
@@ -31,6 +31,7 @@ const createServer = function(currentPort) {
     server.close();
     console.log(`Server is listening to port ${PORT}`)
     for (let i = 0; i < mirrornames.length; i++) {
+        
         if (mirrornames[i] !== `http://${SERVER}:${PORT}`) { 
         const socket = ioClient(`${mirrornames[i]}`);
         //Adiciona mirrors para enviar e receber cópias.
@@ -241,13 +242,15 @@ function deleteFile(client, clientName, filename, mirror = false) {
 //recebe como parâmetro o cliente, nome do arquivo e o conteudo.
 function deposit(client, stream, clientName, filename,  mirror = false) {
   //caminho onde o arquivo será depositado
+  console.log("mirror")
   const clientPath = path.join(DIRECTORY, clientName);
   const filePath = path.join(clientPath, filename);
   //verifica se o diretorio existe, se não: é criado de forma recursiva
   if (!fs.existsSync(clientPath)) {
     fs.mkdirSync(clientPath, { recursive: true });
   }
-  stream.pipe(fs.createWriteStream(filePath)).on(end => {
+  stream.pipe(fs.createWriteStream(filePath));
+  stream.on("end", () => {
      //mensagem citando que o arquivo foi depositado com sucesso.
   client.write(`File ${filename} deposited`);
   console.log(`[SERVER] File ${filename} received from ${client.id}`)
@@ -269,6 +272,7 @@ function createBackup(mirrorlist, clientName, filename, filePath) {
   for (let i = 0; i < mirrorlist.length; i++) {
     for (let socketid in io.sockets.sockets) {
       const socket = io.sockets.sockets.get(socketid);
+      console.log(socket);
       const stream = ss.createStream();
       ss(socket).emit('depositfile', stream, {clientName: clientName,
       filename: filename});
