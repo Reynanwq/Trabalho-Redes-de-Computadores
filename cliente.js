@@ -43,8 +43,6 @@ list - syntax: list username \nlists the avaliable files to download for that us
 help - shows this help.\n`);
             rl.prompt();
         } else if (command === 'recover') {
-            const clientFilePath = path.join(__dirname, DIRECTORY, message[2]);
-
             if (message[2]) {
 
                 const stream = ss.createStream();
