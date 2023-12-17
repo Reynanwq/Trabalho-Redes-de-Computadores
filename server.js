@@ -85,7 +85,7 @@ io.on('connection', (socket) => {
     if (command === 'list') {
       if (args[0]) list(socket, args[0]); else socket.write("Please write all arguments!")
     } else if (command === 'delete') {
-      if (args[2]) deleteFile(socket, args[0], args[1]); else socket.write("Please write all arguments!");
+      if (args[1]) deleteFile(socket, args[0], args[1]); else socket.write("Please write all arguments!");
     } else if (command === 'addmirror') {
       if (args[0]) addMirror(socket.id, io, args[0]); else socket.write("Please write all arguments!");
     }
