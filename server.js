@@ -38,7 +38,7 @@ const createServer = function(currentPort) {
         socket.on("connect", () => {
           console.log(`[SERVER] Found mirror ${mirrornames[i]} with ID: ${socket.id}`); 
           console.log({url: mirrornames[i], id: socket.id })
-          mirrorlist.push({url: mirrornames[i], id: socket.id });
+          mirrorlist.push({url: mirrornames[i], id: socket.id, socket: socket });
           socket.emit('command', `addmirror http://${SERVER}:${PORT}`);
         });
         }
@@ -119,10 +119,10 @@ io.on('connection', (socket) => {
 
 function addMirror(socketID, io, mirror) {
   if (!mirrornames.includes(mirror) && mirror !== `http://${SERVER}:${PORT}`) { 
-    mirrorlist.push({url: mirror, id: socketID });
-    const socket = ioClient(mirror); 
+      const socket = ioClient(mirror); 
         // Adiciona mirrors para enviar e receber cópias.
         socket.on("connect", () => {
+          mirrorlist.push({url: mirror, id: socketID, socket: socket });
           mirrornames.push(mirror);
           console.log(`[SERVER] Connected to mirror ${mirror} with ID: ${socket.id}`);  
           socket.emit('command', `addmirror http://${SERVER}:${PORT}`);
@@ -269,17 +269,20 @@ function deposit(client, stream, clientName, filename, mirror, io) {
 
 function createBackup(mirrorlist, clientName, filename, filePath) {
   for (let i = 0; i < mirrorlist.length; i++) {
-    for (let mirror in mirrorlist) {
-      const socket = ioClient(mirror.id);
-      const stream = ss.createStream();
+
+      const socket = ioClient(mirrorlist[i].socket);
+      // console.log(socket);
+      socket.io.reconnect();
+      socket.io.on("reconnect", () => {
+         const stream = ss.createStream(); 
       
         ss(socket).emit('depositfile', stream, {clientName: clientName,
         filename: filename, mirror: true});
         stream.pipe(fs.createWriteStream(filePath));
-      
-    }
     
 
+      })
+     
   }
 
 }
