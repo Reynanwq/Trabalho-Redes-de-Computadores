@@ -78,6 +78,7 @@ io.on('connection', (socket) => {
   socket.on('command', (data) => {
     //aqui o comando é dividido em partes: comando,nome do cliente, n° de cópias, nome do arquivo e conteudo do arquivo
     const message = data.toString().trim().split(' ');
+    console.log(message);
     const command = message[0];
     const args = message.slice(1);
 
@@ -86,7 +87,7 @@ io.on('connection', (socket) => {
       if (args[0]) list(socket, args[0]);
       else socket.write("Please write all arguments! If unsure, use command help")
     } else if (command === 'delete') {
-      if (args[1]) deleteFile(socket, args[0], args[1]);
+      if (args[1]) deleteFile(socket, args[0], args[1], args[2] || false);
       else socket.write("Please write all arguments! If unsure, use command help.");
     } else if (command === 'addmirror') {
       if (args[0]) addMirror(socket, socket.id, args[0]);
@@ -171,6 +172,10 @@ function recover(client, stream, clientName, filename, mirror = false) {
 
   //lendo os diretórios dentro do /server/
   const directories = fs.readdirSync(DIRECTORY);
+
+  if (!directories.includes(clientName)) {
+    client.write(`[WARNING] Client ${clientName} not found`);
+  }
 
   //itera sobre os diretórios para cada copia
   directories.forEach((folder) => {
@@ -291,12 +296,16 @@ function getBackup(mirrorlist, clientName, client, filename, filePath) {
 function deleteFile(client, clientName, filename, mirror = false) {
 
 
-  let fileDeleted = false;
-
   //lendo os diretórios dentro do /server/
   const directories = fs.readdirSync(DIRECTORY);
 
   //itera sobre os diretórios para cada copia
+  if (!directories.includes(clientName)) {
+    client.write(`[WARNING] Client ${clientName} not found`);
+  }
+
+  
+
   directories.forEach((folder) => {
 
     if (folder !== clientName) return;
@@ -310,20 +319,22 @@ function deleteFile(client, clientName, filename, mirror = false) {
       const filepath = path.join(folderPath, filename);
 
       //elimina o arquivo
-      fs.unlinkSync(filepath);
-      fileDeleted = true;
+      
+        console.log("[SERVER] File deleted from local server");
+        client.write(`[SUCCESS] File ${filename} deleted`);
+        fs.unlink(filepath, () => {
+          if (!mirror) deleteBackup(mirrorlist, client, clientName);
+        });
+      
+
+    } else {
+      client.write(`File ${filename} not found`);
+      console.log(`[SERVER] File ${filename} not found`)
+      if (!mirror) deleteBackup(mirrorlist, clientName, filename);
 
     }
   });
 
-  if (!mirror) deleteBackup(mirrorlist, client, clientName)
-
-  //mensagem indicando se foi deletado ou não
-  if (fileDeleted) {
-    client.write(`[SUCESS] File ${filename} deleted\n`);
-  } else {
-    client.write(`[WARNING] File ${filename} not found\n`);
-  }
 }
 
 
@@ -395,11 +406,18 @@ function createBackup(mirrorlist, clientName, filename, filePath) {
 
 -----------------------------------------------------------------*/
 
-function deleteBackup(mirrorlist, clientName, filename, fileContent) {
+function deleteBackup(mirrorlist, clientName, filename) {
+  if (mirrorlist.length === 0) {
+      console.log(`[SERVER] No mirrors to delete files!`);
+  }
+
   for (let i = 0; i < mirrorlist.length; i++) {
-    for (let socketid in io.sockets.sockets) {
-      io.in(mirrorlist[i].id).emit('message', 'delete clientName filename')
-    }
+    const socket = ioClient(mirrorlist[i].url);
+    socket.on("connect", () => { 
+      console.log("[SERVER] Deleting file from mirrors...")
+      // console.log(clientName, filename)
+      socket.emit("command", `delete ${clientName} ${filename} true`)
+    })
   }
 
 }
