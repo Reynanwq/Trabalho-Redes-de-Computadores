@@ -423,7 +423,7 @@ function deleteBackup(mirrorlist, clientName, filename) {
     for (let i = 0; i < mirrorlist.length; i++) {
         const socket = ioClient(mirrorlist[i].url);
         socket.on("connect", () => {
-            console.log("[SERVER] Deleting file from mirrors...")
+            console.log(`[SERVER] Deleting file ${filename} from mirrors...`)
                 // console.log(clientName, filename)
             socket.emit("command", `delete ${clientName} ${filename} true`)
         })
