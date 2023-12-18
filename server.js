@@ -78,7 +78,7 @@ io.on('connection', (socket) => {
   socket.on('command', (data) => {
     //aqui o comando é dividido em partes: comando,nome do cliente, n° de cópias, nome do arquivo e conteudo do arquivo
     const message = data.toString().trim().split(' ');
-    console.log(message);
+    // console.log(message);
     const command = message[0];
     const args = message.slice(1);
 
@@ -170,6 +170,7 @@ function addMirror(client, socketID, mirror) {
 function recover(client, stream, clientName, filename, mirror = false) {
   let fileFound = false;
 
+
   //lendo os diretórios dentro do /server/
   const directories = fs.readdirSync(DIRECTORY);
 
@@ -219,7 +220,7 @@ function recover(client, stream, clientName, filename, mirror = false) {
     console.log("[SERVER] File not found in this server, searching in mirrors...");
     const filePath = path.join(path.join(DIRECTORY, clientName), filename);
 
-    getBackup(mirrorlist, clientName, client, filename, filePath);
+    getBackup(mirrorlist, clientName, client, filename, filePath, stream);
 
   }
 
@@ -232,7 +233,7 @@ function recover(client, stream, clientName, filename, mirror = false) {
 
 -----------------------------------------------------------------*/
 
-function getBackup(mirrorlist, clientName, client, filename, filePath) {
+function getBackup(mirrorlist, clientName, client, filename, filePath, stream) {
 
   let mirrorNotFound = 0;
 
@@ -252,8 +253,8 @@ function getBackup(mirrorlist, clientName, client, filename, filePath) {
     })
     socket.on("connect", () => {
       console.log(`{SERVER] Searching file ${filename} in mirrors...`);
-      const stream = ss.createStream();
-      ss(socket).emit('recoverfile', stream, {
+      const mirrorStream = ss.createStream();
+      ss(socket).emit('recoverfile', mirrorStream, {
         clientName: clientName,
         filename: filename
       });
@@ -263,9 +264,9 @@ function getBackup(mirrorlist, clientName, client, filename, filePath) {
       if (!fs.existsSync(filePath)) {
         fs.mkdirSync(DIRECTORY, { recursive: true });
       }
-      stream.pipe(fs.createWriteStream(filePath));
+      mirrorStream.pipe(fs.createWriteStream(filePath));
 
-      stream.on("end", () => {
+      mirrorStream.on("end", () => {
         socket.disconnect();
         if (!fs.existsSync(filePath)) {
           client.write(`[SERVER] File ${filename} not found on mirror $http://${SERVER}:${PORT}\n`);
@@ -278,7 +279,9 @@ function getBackup(mirrorlist, clientName, client, filename, filePath) {
           } else {
             // console.log(fs.statSync(filePath)); 
             console.log(`[SERVER] File ${filename} scessfully recovered from mirror ${mirrorlist[i].url}`)
-            recover(client, ss.createStream(), clientName, filename, false); 
+            
+            // console.log(client, stream, clientName, filename, false); 
+            recover(client, stream, clientName, filename, false); 
           }
         }
       });
