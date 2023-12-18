@@ -281,7 +281,7 @@ function getBackup(mirrorlist, clientName, client, filename, filePath, stream) {
             console.log(`[SERVER] File ${filename} sucessfully recovered from mirror ${mirrorlist[i].url}`)
             
             // console.log(client, stream, clientName, filename, false); 
-            recover(client, stream, clientName, filename, false); 
+            recover(client, stream, clientName, filename, true); 
           }
         }
       });
