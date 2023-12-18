@@ -78,7 +78,7 @@ io.on('connection', (socket) => {
     socket.on('command', (data) => {
         //aqui o comando é dividido em partes: comando,nome do cliente, n° de cópias, nome do arquivo e conteudo do arquivo
         const message = data.toString().trim().split(' ');
-        console.log(message);
+        // console.log(message);
         const command = message[0];
         const args = message.slice(1);
 
@@ -441,7 +441,10 @@ function list(socket, clientName, mirror = false) {
     //itera sobre os diretórios para cada copia
     if (!directories.includes(clientName)) {
         socket.write(`[WARNING] Client ${clientName} not found`);
+        return;
     }
+
+    socket.write("[SERVER] File list from mirrors...");
 
     directories.forEach((folder) => {
         if (folder !== clientName) return;
@@ -485,7 +488,7 @@ function listBackup(mirrorlist, clientName) {
     for (let i = 0; i < mirrorlist.length; i++) {
         const socket = ioClient(mirrorlist[i].url);
         socket.on("connect", () => {
-            console.log("[SERVER] File list from mirrors...")
+            // console.log("[SERVER] File list from mirrors...")
             socket.emit("command", `list ${clientName} true`)
         });
     }
