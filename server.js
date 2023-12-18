@@ -273,7 +273,7 @@ function getBackup(mirrorlist, clientName, client, filename, filePath) {
                 } else {
                     if (fs.statSync(filePath).size === 0) {
                         fs.unlinkSync(filePath);
-                        client.write(`[SERVER] File ${filename} not found on mirror $http://${SERVER}:${PORT}\n`);
+                        //client.write(`[SERVER] File ${filename} not found on mirror $http://${SERVER}:${PORT}\n`);
                         client.write(`[WARNING] File ${filename} not found`);
                     } else {
                         // console.log(fs.statSync(filePath)); 
