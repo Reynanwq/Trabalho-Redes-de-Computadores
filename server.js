@@ -78,13 +78,13 @@ io.on('connection', (socket) => {
     socket.on('command', (data) => {
         //aqui o comando é dividido em partes: comando,nome do cliente, n° de cópias, nome do arquivo e conteudo do arquivo
         const message = data.toString().trim().split(' ');
-        console.log(message);
+        // console.log(message);
         const command = message[0];
         const args = message.slice(1);
 
         //verifica qual comando o usuario escolheu e envia para as funções responsáveis
         if (command === 'list') {
-            if (args[0]) list(socket, args[0], args[1] || false);
+            if (args[0]) list(socket, args[0]);
             else socket.write("Please write all arguments! If unsure, use command help")
         } else if (command === 'delete') {
             if (args[1]) deleteFile(socket, args[0], args[1], args[2] || false);
@@ -170,6 +170,7 @@ function addMirror(client, socketID, mirror) {
 function recover(client, stream, clientName, filename, mirror = false) {
     let fileFound = false;
 
+
     //lendo os diretórios dentro do /server/
     const directories = fs.readdirSync(DIRECTORY);
 
@@ -219,7 +220,7 @@ function recover(client, stream, clientName, filename, mirror = false) {
         console.log("[SERVER] File not found in this server, searching in mirrors...");
         const filePath = path.join(path.join(DIRECTORY, clientName), filename);
 
-        getBackup(mirrorlist, clientName, client, filename, filePath);
+        getBackup(mirrorlist, clientName, client, filename, filePath, stream);
 
     }
 
@@ -232,7 +233,7 @@ function recover(client, stream, clientName, filename, mirror = false) {
 
 -----------------------------------------------------------------*/
 
-function getBackup(mirrorlist, clientName, client, filename, filePath) {
+function getBackup(mirrorlist, clientName, client, filename, filePath, stream) {
 
     let mirrorNotFound = 0;
 
@@ -252,8 +253,8 @@ function getBackup(mirrorlist, clientName, client, filename, filePath) {
         })
         socket.on("connect", () => {
             console.log(`{SERVER] Searching file ${filename} in mirrors...`);
-            const stream = ss.createStream();
-            ss(socket).emit('recoverfile', stream, {
+            const mirrorStream = ss.createStream();
+            ss(socket).emit('recoverfile', mirrorStream, {
                 clientName: clientName,
                 filename: filename
             });
@@ -263,22 +264,24 @@ function getBackup(mirrorlist, clientName, client, filename, filePath) {
             if (!fs.existsSync(filePath)) {
                 fs.mkdirSync(DIRECTORY, { recursive: true });
             }
-            stream.pipe(fs.createWriteStream(filePath));
+            mirrorStream.pipe(fs.createWriteStream(filePath));
 
-            stream.on("end", () => {
+            mirrorStream.on("end", () => {
                 socket.disconnect();
                 if (!fs.existsSync(filePath)) {
-                    client.write(`[SERVER] File ${filename} not found on mirror $http://${SERVER}:${PORT}\n`);
+                    // client.write(`[SERVER] File ${filename} not found on mirror $http://${SERVER}:${PORT}\n`);
                     client.write(`[WARNING] File ${filename} not found`);
                 } else {
                     if (fs.statSync(filePath).size === 0) {
                         fs.unlinkSync(filePath);
-                        client.write(`[SERVER] File ${filename} not found on mirror $http://${SERVER}:${PORT}\n`);
+                        // client.write(`[SERVER] File ${filename} not found on mirror $http://${SERVER}:${PORT}\n`);
                         client.write(`[WARNING] File ${filename} not found`);
                     } else {
                         // console.log(fs.statSync(filePath)); 
-                        console.log(`[SERVER] File ${filename} scessfully recovered from mirror ${mirrorlist[i].url}`)
-                        recover(client, ss.createStream(), clientName, filename, false);
+                        console.log(`[SERVER] File ${filename} sucessfully recovered from mirror ${mirrorlist[i].url}`)
+
+                        // console.log(client, stream, clientName, filename, false); 
+                        recover(client, stream, clientName, filename, false);
                     }
                 }
             });
@@ -429,63 +432,24 @@ function deleteBackup(mirrorlist, clientName, filename) {
 -----------------------------------------------------------------*/
 
 //recebe apenas o nome do cliente como parâmetro
-function list(socket, clientName, mirror = false) {
+function list(socket, clientName) {
+    const clientPath = path.join(DIRECTORY, clientName);
 
-    //lendo os diretórios dentro do /server/
-    const directories = fs.readdirSync(DIRECTORY);
-
-    //itera sobre os diretórios para cada copia
-    if (!directories.includes(clientName)) {
-        socket.write(`[WARNING] Client ${clientName} not found`);
+    //verifica se o diretório existe
+    if (!fs.existsSync(clientPath)) {
+        socket.emit('message', `No files found for ${clientName}`);
+        return;
     }
 
-    directories.forEach((folder) => {
-        if (folder !== clientName) return;
-        const clientPath = path.join(DIRECTORY, folder);
+    const clientFiles = fs.readdirSync(clientPath);
 
-
-        //verifica se o diretório existe
-        if (!fs.existsSync(clientPath)) {
-            socket.emit('message', `No files found for ${clientName}`);
-            return;
-        }
-
-        const clientFiles = fs.readdirSync(clientPath);
-
-        //verifica se há arquivos no diretório
-        if (clientFiles.length > 0) {
-            socket.emit('message', `Files for ${clientName}: ${clientFiles.join(',')}`);
-            fs.unlink(clientPath, () => {
-                if (!mirror) listBackup(mirrorlist, clientName);
-            });
-        } else {
-            socket.emit('message', `No files found for ${clientName}`);
-            if (!mirror) listBackup(mirrorlist, clientName);
-        }
-
-    });
-}
-
-/*-----------------------------------------------------------------
-
-                FUNÇÃO PARA LISTAR BACKUP DE ARQUIVOS
-
------------------------------------------------------------------*/
-
-//recebe apenas o nome do cliente como parâmetro
-function listBackup(mirrorlist, clientName) {
-    if (mirrorlist.length === 0) {
-        console.log(`[SERVER] No mirrors to list files!`);
-    }
-    for (let i = 0; i < mirrorlist.length; i++) {
-        const socket = ioClient(mirrorlist[i].url);
-        socket.on("connect", () => {
-            console.log("[SERVER] List file from mirrors...")
-            socket.emit("command", `list ${clientName} true`)
-        });
+    //verifica se há arquivos no diretório
+    if (clientFiles.length > 0) {
+        socket.emit('message', `Files for ${clientName}: ${clientFiles.join(',')}`);
+    } else {
+        socket.emit('message', `No files found for ${clientName}`);
     }
 }
-
 
 createServer(PORT)
     //inicia o servidor na porta selecionada exibindo uma mensagem indicando que o servidor está ativo.
