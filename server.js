@@ -272,19 +272,26 @@ function deposit(client, stream, clientName, filename, mirror, io) {
 
 function createBackup(mirrorlist, clientName, filename, filePath) {
     for (let i = 0; i < mirrorlist.length; i++) {
-        const socket = ioClient(mirrorlist[i].url);
-        socket.on("reconnect", () => {
+
+        const socket = ioClient(mirrorlist[i].socket);
+        // console.log(socket);
+        socket.io.reconnect();
+        socket.io.on("reconnect", () => {
             const stream = ss.createStream();
+
             ss(socket).emit('depositfile', stream, {
                 clientName: clientName,
                 filename: filename,
                 mirror: true
             });
             stream.pipe(fs.createWriteStream(filePath));
-        });
-    }
-}
 
+
+        })
+
+    }
+
+}
 
 /*-----------------------------------------------------------------
 
