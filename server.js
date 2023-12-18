@@ -444,7 +444,7 @@ function list(socket, clientName, mirror = false) {
         return;
     }
 
-    socket.write("[SERVER] File list from mirrors...");
+    (if mirror) socket.write("[SERVER] File list from mirrors...");
 
     directories.forEach((folder) => {
         if (folder !== clientName) return;
