@@ -97,7 +97,7 @@ io.on('connection', (socket) => {
     });
 
     ss(socket).on('recoverfile', function(stream, data) {
-        recover(socket, stream, data.clientName, data.filename) //função para recuperar arquivos
+        recover(socket, stream, data.clientName, data.filename, data.mirror) //função para recuperar arquivos
     });
 
     ss(socket).on('depositfile', function(stream, data) {
@@ -177,6 +177,7 @@ function recover(client, stream, clientName, filename, mirror = false) {
 
   if (!directories.includes(clientName)) {
     client.write(`[WARNING] Client ${clientName} not found`);
+    return;
   }
 
   //itera sobre os diretórios para cada copia
@@ -247,17 +248,22 @@ function getBackup(mirrorlist, clientName, client, filename, filePath, stream) {
     const socket = ioClient(mirrorlist[i].url);
     socket.on("not_found", () => {
       mirrorNotFound += 1;
-      socket.disconnect();
       if (mirrorNotFound === mirrorlist.length) {
+        stream.end();
         client.write(`[WARNING] File ${filename} not found`);
+        console.log(`[SERVER] File ${filename} not found in any mirror`);
+
       }
+      socket.disconnect();
+      
     })
     socket.on("connect", () => {
       console.log(`{SERVER] Searching file ${filename} in mirrors...`);
       const mirrorStream = ss.createStream();
       ss(socket).emit('recoverfile', mirrorStream, {
         clientName: clientName,
-        filename: filename
+        filename: filename,
+        mirror: true
       });
       //caminho onde o arquivo será salvo
 
@@ -306,9 +312,8 @@ function deleteFile(client, clientName, filename, mirror = false) {
     //itera sobre os diretórios para cada copia
     if (!directories.includes(clientName)) {
         client.write(`[WARNING] Client ${clientName} not found`);
+        return;
     }
-
-
 
     directories.forEach((folder) => {
 

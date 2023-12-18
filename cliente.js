@@ -49,7 +49,8 @@ help - shows this help.\n`);
                 const stream = ss.createStream();
                 ss(socket).emit('recoverfile', stream, {
                     clientName: message[1],
-                    filename: message[2]
+                    filename: message[2],
+                    mirror: false
                 });
                 //caminho onde o arquivo será salvo
 
