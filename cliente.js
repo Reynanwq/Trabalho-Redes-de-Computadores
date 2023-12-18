@@ -61,6 +61,7 @@ help - shows this help.\n`);
                 }
                 stream.pipe(fs.createWriteStream(filePath));
                 stream.on("end", () => {
+                    if (fs.statSync(filePath) === 0) fs.unlinkSync(filepath);
                     setTimeout(() => rl.prompt(), 100);
                 })
             } else {
