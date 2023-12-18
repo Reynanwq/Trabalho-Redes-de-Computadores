@@ -269,16 +269,16 @@ function getBackup(mirrorlist, clientName, client, filename, filePath, stream) {
       mirrorStream.on("end", () => {
         socket.disconnect();
         if (!fs.existsSync(filePath)) {
-          client.write(`[SERVER] File ${filename} not found on mirror $http://${SERVER}:${PORT}\n`);
+          // client.write(`[SERVER] File ${filename} not found on mirror $http://${SERVER}:${PORT}\n`);
           client.write(`[WARNING] File ${filename} not found`);
         } else {
           if (fs.statSync(filePath).size === 0) {
             fs.unlinkSync(filePath);
-            client.write(`[SERVER] File ${filename} not found on mirror $http://${SERVER}:${PORT}\n`);
+            // client.write(`[SERVER] File ${filename} not found on mirror $http://${SERVER}:${PORT}\n`);
             client.write(`[WARNING] File ${filename} not found`);
           } else {
             // console.log(fs.statSync(filePath)); 
-            console.log(`[SERVER] File ${filename} scessfully recovered from mirror ${mirrorlist[i].url}`)
+            console.log(`[SERVER] File ${filename} sucessfully recovered from mirror ${mirrorlist[i].url}`)
             
             // console.log(client, stream, clientName, filename, false); 
             recover(client, stream, clientName, filename, false); 
