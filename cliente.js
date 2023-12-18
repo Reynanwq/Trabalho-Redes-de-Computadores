@@ -13,6 +13,7 @@ const DIRECTORY = process.env.CLIENTDIRECTORY;
 //É acionado quando a conexão com o servidor é estabelecida.
 socket.on("connect", () => {
     console.log(`Connected to server with ID: ${socket.id}`);
+    socket.emit("not_mirror");
 
     //interface para ler a entrada do usuario a partir do terminal
     const rl = readline.createInterface({

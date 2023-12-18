@@ -15,11 +15,6 @@ const ioClient = require("socket.io-client")
 const mirrorlist = []
 const mirrornames = process.env.MIRRORS.split(" ")
 
-function refreshMirrors() {
-    for (let i = 0; i < mirrorlist.length; i++) {
-
-    }
-}
 
 const createServer = function(currentPort) {
     console.log(`Attempting to create server on port ${currentPort}...`)
@@ -36,8 +31,8 @@ const createServer = function(currentPort) {
                 const socket = ioClient(`${mirrornames[i]}`);
                 //Adiciona mirrors para enviar e receber cópias.
                 socket.on("connect", () => {
-                    console.log(`[SERVER] Found mirror ${mirrornames[i]} with ID: ${socket.id}`);
-                    console.log({ url: mirrornames[i], id: socket.id })
+                    console.log(`[SERVER] Found mirror ${mirrornames[i]}`);
+                    // console.log({ url: mirrornames[i], id: socket.id })
                     mirrorlist.push({ url: mirrornames[i], id: socket.id, socket: socket });
                     socket.emit('command', `addmirror http://${SERVER}:${PORT}`);
                 });
@@ -66,10 +61,15 @@ const createServer = function(currentPort) {
 const clients = new Map();
 
 
+io.on('not_mirror', () => {
+  //ao se conectar ao servidor usando o Socket.IO, é atribuido um ID pelo servidor ao cliente.
+  console.log(`[SERVER] Client connected: ${socket.id}`);
+
+})
+
 //acionado após o cliente se concectar ao servidor
 io.on('connection', (socket) => {
-    //ao se conectar ao servidor usando o Socket.IO, é atribuido um ID pelo servidor ao cliente.
-    console.log(`[SERVER] Client connected: ${socket.id}`);
+    
     // Adiciona o cliente ao mapa de clientes usando o ID do socket como chave
 
     clients.set(socket.id, socket);
@@ -89,7 +89,7 @@ io.on('connection', (socket) => {
             if (args[1]) deleteFile(socket, args[0], args[1]);
             else socket.write("Please write all arguments! If unsure, use command help.");
         } else if (command === 'addmirror') {
-            if (args[0]) addMirror(socket.id, io, args[0]);
+            if (args[0]) addMirror(socket, socket.id, args[0]);
             else socket.write("Please write all arguments! If unsure, use command help.");
         }
 
@@ -105,8 +105,18 @@ io.on('connection', (socket) => {
 
 
     //acionado após o cliente se desconectar do servidor
-    socket.on('disconnect', () => {
-        console.log(`[SERVER] Client disconnected: ${socket.id}`);
+    socket.on('disconnect', (reason) => {
+        
+        // console.log(reason)
+        
+        if (reason !== "client namespace disconnect") {
+        if (socket.mirrorUrl) {
+            console.log(`[SERVER] Mirror disconnected: ${socket.mirrorUrl}`);
+          } else {
+            console.log(`[SERVER] Client disconnected: ${socket.id}`);
+        }
+        }
+
         // Remove o cliente do mapa de clientes ao desconectar
         clients.delete(socket.id);
     });
@@ -120,7 +130,8 @@ io.on('connection', (socket) => {
 -----------------------------------------------------------------
 */
 
-function addMirror(socketID, io, mirror) {
+function addMirror(client, socketID, mirror) {
+    client.mirrorUrl = mirror;
     if (!mirrornames.includes(mirror) && mirror !== `http://${SERVER}:${PORT}`) {
         const socket = ioClient(mirror);
         // Adiciona mirrors para enviar e receber cópias.
@@ -129,7 +140,7 @@ function addMirror(socketID, io, mirror) {
             mirrornames.push(mirror);
             console.log(`[SERVER] Connected to mirror ${mirror} with ID: ${socket.id}`);
             socket.emit('command', `addmirror http://${SERVER}:${PORT}`);
-            console.log({ url: mirror, id: socketID })
+            // console.log({ url: mirror, id: socketID })
             for (let i = 0; i < mirrorlist.length; i++) {
                 socket.emit('command', `addmirror ${mirrorlist[i].url}`);
 
@@ -245,6 +256,8 @@ function deleteFile(client, clientName, filename, mirror = false) {
 function deposit(client, stream, clientName, filename, mirror, io) {
     //caminho onde o arquivo será depositado
     // console.log(mirror)
+
+    console.log(`[SERVER] Receiving file ${filename}...`)
     const clientPath = path.join(DIRECTORY, clientName);
     const filePath = path.join(clientPath, filename);
     //verifica se o diretorio existe, se não: é criado de forma recursiva
@@ -255,9 +268,14 @@ function deposit(client, stream, clientName, filename, mirror, io) {
     stream.on("end", () => {
         //mensagem citando que o arquivo foi depositado com sucesso.
         client.write(`File ${filename} deposited`);
-        console.log(`[SERVER] File ${filename} received from ${client.id}`)
-        if (!mirror) createBackup(mirrorlist, clientName, filename, filePath)
-            //cria multiplas copias do arquivo para o cliente em diferentes servidores
+        if (mirror) {
+          console.log(`[SERVER] File ${filename} received from mirror`);
+                    
+        } else {
+          console.log(`[SERVER] File ${filename} sucessfully received from ${client.id}`); 
+          createBackup(mirrorlist, clientName, filename, filePath)
+            //cria multiplas copias do arquivo para o cliente em diferentes servidores 
+        }
 
     })
 
@@ -273,14 +291,19 @@ function deposit(client, stream, clientName, filename, mirror, io) {
 function createBackup(mirrorlist, clientName, filename, filePath) {
     for (let i = 0; i < mirrorlist.length; i++) {
         const socket = ioClient(mirrorlist[i].url);
-        socket.on("reconnect", () => {
+        socket.on("connect", () => {
+            console.log(`[SERVER] Sending file ${filename} to mirrors...`);
             const stream = ss.createStream();
             ss(socket).emit('depositfile', stream, {
                 clientName: clientName,
                 filename: filename,
                 mirror: true
             });
-            stream.pipe(fs.createWriteStream(filePath));
+            stream.on("end", () => {
+                console.log(`[SERVER] File ${filename} scessfully sent to mirror ${mirrorlist[i].url}`)
+                socket.disconnect();
+            }); 
+            fs.createReadStream(filePath).pipe(stream)
         });
     }
 }
