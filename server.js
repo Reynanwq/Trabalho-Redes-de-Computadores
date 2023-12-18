@@ -31,7 +31,7 @@ const createServer = function(currentPort) {
                 const socket = ioClient(`${mirrornames[i]}`);
                 //Adiciona mirrors para enviar e receber cópias.
                 socket.on("connect", () => {
-                    console.log(`[SERVER] Found mirror ${mirrornames[i]}`);
+                    console.log(`[SERVER] Connected to mirror ${mirrornames[i]}`);
                     // console.log({ url: mirrornames[i], id: socket.id })
                     mirrorlist.push({ url: mirrornames[i], id: socket.id, socket: socket });
                     socket.emit('command', `addmirror http://${SERVER}:${PORT}`);
