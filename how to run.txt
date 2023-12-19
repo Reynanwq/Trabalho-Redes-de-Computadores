@@ -1,49 +1,57 @@
--------------- SÓ ESTÁ EXXECUTANDO NO LINUX --------------
+-------------- DEPÊNDENCIAS --------------
+
+Para instalar as dependências, abra o terminal e digite:
+
+npm install 
+npm install socket.io-client
+npm install dotenv
+
+Provavelmente, é para está exectudando normalmente. Se não executar, entre em contato:
+
+1° Email: reynanwq@gmail.com
+2° Email: reynanpaiva@ufba.br
+
+-------------- EXECUTANDO --------------
 
 Abra 2 terminais:
 No primeiro terminal digite "node server.js"
 No segundo terminal digite "node cliente.js"
 
+Para testar com os espelhos, abra 3 ou mais terminal e digite o "node server.js"
 
------------------------------------------------------------------------------------------
+-------------- EXECUTANDO DEPOSIT --------------
 
-funcionamento do terminal em que você executou o servidor (digitou server.js)
-a primeira mensagem que deve aparecer é:
+no mesmo terminal em que digitou "node cliente.js"
+insira o comando:
 
-[SERVER] Server is now actively monitoring Port : X
+deposit NomeDoCliente NomeDoArquivo
 
-Após a execusão do "cliente.js", deve receber a seguinte mensagem (ainda no terminal do servidor):
+exemplo: deposit Reynan arquivoTeste1.txt
 
-[SERVER] Client connected : (id do cliente)
+-------------- EXECUTANDO RECOVER --------------
 
-Caso o terminal do "cliente.js" seja encerrado, deve receber a seguinte mensagem:
+no mesmo terminal em que digitou "node cliente.js"
+insira o comando:
 
-[SERVER] Client disconnect : (id do client)
+recover NomeDoCliente NomeDoArquivo NomeDoArquivoQueDesejaVerOconteudo
 
------------------------------------------------------------------------------------------
-funcionamento do terminal em que você executou o servidor (digitou cleinte.js)
-a primeira mensagem que deve aparecer é:
+exemplo: recover Reynan arquivoTeste1.txt recuperado.txt
 
-Connected to server with ID : (id do cliente)
 
-Agora, estamos aptos para realizar as operações: list,deposit,recover e delete
+-------------- EXECUTANDO DELETE --------------
 
-Para que um cliente deposite um arquivo:
+no mesmo terminal em que digitou "node cliente.js"
+insira o comando:
 
-- deposit "nome do cliente" "nome do arquivo"
-exemplo: deposit reynan arquivoImportante.txt 
+delete NomeDoCliente NomeDoArquivo
 
-Para listar os arquivos do cliente:
+exemplo: delete Reynan arquivoTeste1.txt
 
-- list "nome da pasta em que o cliente está" / "nome do cliente"
-exemplo: list 1/reynan
+-------------- EXECUTANDO LIST --------------
 
-para que um cliente recupere  um arquivo:
+no mesmo terminal em que digitou "node cliente.js"
+insira o comando:
 
-- recover "nome do cliente" "nome do arquivo que deseja recuperar" 
-exemplo: recover reynan arquivoImportante.txt
+list NomeDoCliente 
 
-Para que um cliente delete um arquivo:
-
-- delete "nome do cliente" "nome do arquivo"
-exemplo: delete reynan arquivoImportante.txt
+exemplo: list Reynan

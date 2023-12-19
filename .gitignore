@@ -1,7 +1,0 @@
-node_nodules/
-yarn.lock
-package-lock.json
-server
-node_modules
-client 
-.env
